@@ -1,0 +1,8 @@
+node_modules
+.next
+dist
+coverage
+pnpm-lock.yaml
+*.min.js
+apps/api/.venv
+apps/web/next-env.d.ts

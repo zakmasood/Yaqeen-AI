@@ -1,0 +1,23 @@
+{
+  "name": "yaqeen-ai",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Yaqeen AI — WhatsApp-first payment-proof risk assessment for Pakistani merchants",
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev": "pnpm --filter @yaqeen/web dev",
+    "dev:web": "pnpm --filter @yaqeen/web dev",
+    "dev:api": "cd apps/api && python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000",
+    "build": "pnpm --filter @yaqeen/shared build && pnpm --filter @yaqeen/web build",
+    "lint": "pnpm --filter @yaqeen/shared lint && pnpm --filter @yaqeen/web lint",
+    "lint:api": "cd apps/api && ruff check .",
+    "typecheck": "pnpm --filter @yaqeen/shared typecheck && pnpm --filter @yaqeen/web typecheck",
+    "test": "pnpm --filter @yaqeen/shared test && pnpm --filter @yaqeen/web test",
+    "test:api": "cd apps/api && python -m pytest",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.4.2"
+  }
+}

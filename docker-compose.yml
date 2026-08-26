@@ -1,0 +1,33 @@
+# Minimal local stack for the API (and optional web).
+# For Supabase locally, use the Supabase CLI (`supabase start`) — not bundled here.
+
+services:
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      APP_ENV: development
+      CORS_ORIGINS: http://localhost:3000
+    volumes:
+      - ./apps/api:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  web:
+    image: node:22-alpine
+    working_dir: /workspace
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    volumes:
+      - .:/workspace
+    command: sh -c "corepack enable && pnpm install && pnpm --filter @yaqeen/web dev"
+    depends_on:
+      - api

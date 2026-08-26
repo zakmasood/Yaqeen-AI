@@ -1,0 +1,132 @@
+# Yaqeen AI CI — install, lint, type-check, test, build.
+# No production deploy stage yet.
+
+stages:
+  - install
+  - lint
+  - type-check
+  - test
+  - build
+
+variables:
+  PNPM_VERSION: "9.15.0"
+  NODE_VERSION: "22"
+  PYTHON_VERSION: "3.12"
+  PNPM_HOME: "$CI_PROJECT_DIR/.pnpm"
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+.pnpm_cache: &pnpm_cache
+  cache:
+    key:
+      files:
+        - pnpm-lock.yaml
+    paths:
+      - .pnpm
+      - node_modules
+      - apps/web/node_modules
+      - packages/shared/node_modules
+
+.node_base:
+  image: node:${NODE_VERSION}-bookworm
+  before_script:
+    - corepack enable
+    - corepack prepare pnpm@${PNPM_VERSION} --activate
+    - pnpm config set store-dir $PNPM_HOME
+
+.python_base:
+  image: python:${PYTHON_VERSION}-bookworm
+  before_script:
+    - cd apps/api
+    - python -m pip install --upgrade pip
+    - pip install -e ".[dev]"
+
+# ---------------------------------------------------------------------------
+# Install
+# ---------------------------------------------------------------------------
+install:node:
+  extends: .node_base
+  stage: install
+  <<: *pnpm_cache
+  script:
+    - pnpm install --frozen-lockfile
+  artifacts:
+    paths:
+      - node_modules/
+      - apps/web/node_modules/
+      - packages/shared/node_modules/
+      - pnpm-lock.yaml
+    expire_in: 1 hour
+
+install:python:
+  extends: .python_base
+  stage: install
+  cache:
+    key: pip-${PYTHON_VERSION}
+    paths:
+      - .cache/pip
+  script:
+    - python -c "import fastapi; print(fastapi.__version__)"
+
+# ---------------------------------------------------------------------------
+# Lint
+# ---------------------------------------------------------------------------
+lint:node:
+  extends: .node_base
+  stage: lint
+  <<: *pnpm_cache
+  needs: ["install:node"]
+  script:
+    - pnpm lint
+    - pnpm format:check
+
+lint:python:
+  extends: .python_base
+  stage: lint
+  needs: ["install:python"]
+  script:
+    - ruff check .
+    - ruff format --check .
+
+# ---------------------------------------------------------------------------
+# Type-check
+# ---------------------------------------------------------------------------
+typecheck:node:
+  extends: .node_base
+  stage: type-check
+  <<: *pnpm_cache
+  needs: ["install:node"]
+  script:
+    - pnpm typecheck
+
+# ---------------------------------------------------------------------------
+# Test
+# ---------------------------------------------------------------------------
+test:node:
+  extends: .node_base
+  stage: test
+  <<: *pnpm_cache
+  needs: ["install:node"]
+  script:
+    - pnpm test
+
+test:python:
+  extends: .python_base
+  stage: test
+  needs: ["install:python"]
+  script:
+    - python -m pytest -q
+
+# ---------------------------------------------------------------------------
+# Build
+# ---------------------------------------------------------------------------
+build:web:
+  extends: .node_base
+  stage: build
+  <<: *pnpm_cache
+  needs: ["install:node"]
+  script:
+    - pnpm build
+  artifacts:
+    paths:
+      - apps/web/.next/
+    expire_in: 1 day
