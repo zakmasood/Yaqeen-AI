@@ -1,6 +1,12 @@
+import type { ReactNode } from "react";
 import type { Metadata } from "next";
-import { AppShell } from "@/components/layout/app-shell";
+import { Inter } from "next/font/google";
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
 
 export const metadata: Metadata = {
   title: "Yaqeen AI",
@@ -8,12 +14,10 @@ export const metadata: Metadata = {
     "WhatsApp-first payment-proof risk assessment for Pakistani merchants. Screening only — not fund confirmation.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body>
-        <AppShell>{children}</AppShell>
-      </body>
+      <body className={`${inter.variable} font-sans`}>{children}</body>
     </html>
   );
 }
