@@ -2,15 +2,15 @@ import clsx from "clsx";
 import { AnalysisStatus } from "@yaqeen/shared";
 
 const labels: Record<AnalysisStatus, string> = {
-  READY_FOR_CONFIRMATION: "Ready for confirmation",
-  MANUAL_REVIEW: "Manual review",
+  READY_FOR_CONFIRMATION: "Ready",
+  MANUAL_REVIEW: "Needs review",
   SUSPICIOUS: "Suspicious",
 };
 
 const styles: Record<AnalysisStatus, string> = {
-  READY_FOR_CONFIRMATION: "bg-emerald-100 text-emerald-800 ring-emerald-200",
-  MANUAL_REVIEW: "bg-amber-100 text-amber-900 ring-amber-200",
-  SUSPICIOUS: "bg-red-100 text-red-800 ring-red-200",
+  READY_FOR_CONFIRMATION: "bg-emerald-50 text-emerald-800 ring-emerald-100",
+  MANUAL_REVIEW: "bg-amber-50 text-amber-800 ring-amber-100",
+  SUSPICIOUS: "bg-red-50 text-red-700 ring-red-100",
 };
 
 export function StatusBadge({ status }: { status: AnalysisStatus }) {
@@ -35,9 +35,9 @@ export function Badge({
 }) {
   const toneClass = {
     neutral: "bg-slate-100 text-slate-700 ring-slate-200",
-    success: "bg-emerald-100 text-emerald-800 ring-emerald-200",
-    warning: "bg-amber-100 text-amber-900 ring-amber-200",
-    danger: "bg-red-100 text-red-800 ring-red-200",
+    success: "bg-emerald-50 text-emerald-800 ring-emerald-100",
+    warning: "bg-amber-50 text-amber-800 ring-amber-100",
+    danger: "bg-red-50 text-red-700 ring-red-100",
   }[tone];
 
   return (
