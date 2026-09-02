@@ -73,7 +73,8 @@ pnpm install
 
 ```bash
 pnpm dev:web
-# http://localhost:3000
+# http://localhost:3000 (or 3001 if 3000 is taken)
+# Sign in at /login after linking a Supabase user — see docs/DEVELOPMENT.md
 ```
 
 ### 4. Backend

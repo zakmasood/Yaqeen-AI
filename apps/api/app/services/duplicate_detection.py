@@ -4,7 +4,8 @@ from __future__ import annotations
 
 
 class DuplicateDetectionService:
-    """Stub: compare against prior analyses. No mock matches."""
+    """Passthrough until prior-analysis lookup is wired. No mock matches."""
 
     async def find_duplicates(self, transaction_id: str, merchant_id: str) -> list[str]:
-        raise NotImplementedError("Duplicate detection not implemented in scaffold")
+        _ = transaction_id, merchant_id
+        return []

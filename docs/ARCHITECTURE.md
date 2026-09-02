@@ -7,16 +7,19 @@ WhatsApp Cloud API ──► FastAPI (apps/api) ──► Supabase (DB + private
                               ▲
 Next.js (apps/web) ───────────┘
         │
-        └── Supabase anon client (auth / limited reads under future RLS)
+        └── Supabase anon client (auth cookies only)
 ```
+
+Merchant dashboard sends `Authorization: Bearer <access_token>`. The API verifies the JWT with the service-role client, then scopes rows by `merchant_users.auth_user_id`. Public `/submit` is unauthenticated and scoped by `merchant_slug`.
 
 ## Frontend (`apps/web`)
 
 - Next.js App Router + Tailwind
-- Routes: `/`, `/upload`, `/analyses`, `/analyses/[id]`, `/settings`
-- Uses `@yaqeen/shared` for domain types and status badges
+- Auth: `/login` (email/password). Middleware protects dashboard routes.
+- Public: `/submit?merchant=<slug>`
+- Dashboard: `/`, `/upload`, `/analyses`, `/analyses/[id]`, `/settings`
 - Browser Supabase client: **URL + anon key only**
-- Calls FastAPI via `NEXT_PUBLIC_API_URL`
+- Calls FastAPI via `NEXT_PUBLIC_API_URL` with the session access token
 
 ## Backend (`apps/api`)
 
@@ -24,41 +27,45 @@ Next.js (apps/web) ───────────┘
 - Structured JSON logging (no screenshot payloads in logs)
 - Routers:
   - `GET /health`
-  - `/api/v1/analyses`
-  - `/api/v1/orders`
-  - `/api/v1/merchant-accounts`
+  - `GET /api/v1/me`
+  - `/api/v1/analyses` (JWT)
+  - `/api/v1/orders` (JWT)
+  - `/api/v1/merchant-accounts` (JWT)
+  - `POST /api/v1/public/submissions` (slug-scoped)
   - `/api/v1/webhooks/whatsapp`
-- Service boundaries (stubs in scaffold):
-  - OCR
-  - Vision analysis
-  - Duplicate detection
-  - Risk scoring → operational status only
-  - Storage (private bucket, signed URLs)
-  - WhatsApp ingestion
+- Service boundaries:
+  - OCR / vision / duplicate detection — passthrough stubs (empty results, no invented detections)
+  - Risk scoring — maps discrete signals to operational status only
+  - Storage — private bucket, short-lived signed URLs
+  - WhatsApp ingestion — match merchant by `whatsapp_business_number`, then same pipeline
 
-## Analysis pipeline (target)
+## Analysis pipeline
+
+Runs **in-request** (upgrade to a job queue when real OCR/vision are wired):
 
 1. Ingest (WhatsApp media or upload) → private storage
-2. OCR + vision → extracted fields + image consistency signals
-3. Match against order / merchant payment account expectations
-4. Duplicate / reused transaction-id checks
-5. Risk scoring → `READY_FOR_CONFIRMATION` | `MANUAL_REVIEW` | `SUSPICIOUS`
-6. Persist analysis, signals, extraction; notify merchant UI / WhatsApp reply
+2. OCR + vision stubs → empty extraction unless a real provider is added
+3. Duplicate / reused transaction-id stub
+4. If extraction is empty, emit `SCREENING_UNAVAILABLE` (MEDIUM) → `MANUAL_REVIEW`
+5. Persist analysis, signals, extraction; merchant UI reads via API
 
-Scaffold ships **boundaries only** — no fake AI.
+Stubs must not emit `READY_FOR_CONFIRMATION`. That status is reserved for a future provider that actually extracts fields and finds no blocking signals.
 
 ## Supabase
 
 - Tables: merchants, merchant_users, merchant_payment_accounts, orders, analyses, screenshots, extracted_transactions, risk_signals
-- Migrations under `supabase/migrations/`
+- Extra Phase 2 columns: `merchants.slug`, `analyses.order_reference`, `reviewed_at`, `submitter_name`, `submitter_phone`, `screenshots.original_filename`
+- Private bucket `payment-screenshots`
 - **Service role** used only by the API / trusted jobs
-- RLS policies are planned (commented guidance in migration); enable before production
+- RLS enabled with merchant isolation via `merchant_users.auth_user_id = auth.uid()` (service role bypasses for writes)
 
 ## WhatsApp boundary
 
 - Meta verifies webhook via GET challenge (`WHATSAPP_VERIFY_TOKEN`)
-- POST payloads accepted and handed to `WhatsAppIngestionService` (stub)
-- Signature validation and media download belong in that service — not in route handlers long-term
+- POST: parse image `media_id`; if a merchant matches the display number, enqueue the pipeline
+- Download media only when `WHATSAPP_ACCESS_TOKEN` is set; otherwise persist `SCREENING_UNAVAILABLE`
+- No matching merchant → accept and log; do not invent a tenant
+- Signature validation still belongs in the ingestion service
 
 ## Shared package (`packages/shared`)
 

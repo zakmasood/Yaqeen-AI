@@ -1,4 +1,4 @@
-"""WhatsApp webhook placeholder — verify challenge only; no fake ingestion logic."""
+"""WhatsApp webhook — verify challenge; POST enqueues the screening pipeline."""
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from fastapi.responses import PlainTextResponse
@@ -28,7 +28,7 @@ def verify_webhook(
 
 @router.post("")
 async def receive_webhook(request: Request, payload: WhatsAppWebhookPayload) -> dict[str, str]:
-    # Signature validation + parsing belong in WhatsAppIngestionService (not implemented).
+    # Signature validation belongs in WhatsAppIngestionService (later).
     _ = request
     service = WhatsAppIngestionService()
     await service.enqueue(payload)

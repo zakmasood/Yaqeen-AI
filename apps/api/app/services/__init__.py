@@ -1,1 +1,1 @@
-"""Service boundaries — stubs only, no pretend fraud detection."""
+"""Service boundaries for screening, storage, and ingestion."""

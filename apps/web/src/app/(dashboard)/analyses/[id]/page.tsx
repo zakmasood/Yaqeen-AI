@@ -3,32 +3,41 @@ import { notFound } from "next/navigation";
 import { AnalysisStatus } from "@yaqeen/shared";
 import { Button } from "@/components/ui/button";
 import { InfoBanner } from "@/components/ui/info-banner";
-import { PhoneReceipt } from "@/components/proof/phone-receipt";
-import {
-  IconAlert,
-  IconCheck,
-  IconClock,
-  IconImage,
-  IconRefresh,
-  IconWallet,
-} from "@/components/icons";
-import { formatPkr, getAnalysis, riskTotal } from "@/lib/demo-data";
+import { QueryMessage } from "@/components/ui/query-message";
+import { ReviewButton } from "@/components/analyses/review-button";
+import { IconAlert, IconCheck, IconClock, IconImage } from "@/components/icons";
+import { formatPkr, formatWhen } from "@/lib/format";
+import { loadAnalysis } from "@/lib/api-server";
+import { ApiError } from "@/lib/api";
+import { statusNote } from "@/lib/analysis-map";
 import { providerLabel } from "@/components/ui/provider-mark";
+import { PAYMENT_SCREENING_DISCLAIMER } from "@yaqeen/shared";
 
-const flagIcons = {
-  reuse: IconRefresh,
-  amount: IconWallet,
-  image: IconImage,
-};
+export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ id: string }> };
 
 export default async function AnalysisDetailPage({ params }: Props) {
   const { id } = await params;
-  const row = getAnalysis(id);
-  if (!row) notFound();
+  let error: string | null = null;
+  let row = null;
+  try {
+    row = await loadAnalysis(id);
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) {
+      notFound();
+    }
+    error = err instanceof ApiError ? err.message : "Could not load analysis";
+  }
 
-  const total = riskTotal(row);
+  if (error || !row) {
+    return (
+      <div className="px-6 py-8 lg:px-10">
+        <QueryMessage title="Analysis unavailable">{error}</QueryMessage>
+      </div>
+    );
+  }
+
   const banner = {
     [AnalysisStatus.SUSPICIOUS]: {
       wrap: "border-red-200 bg-red-50",
@@ -56,13 +65,15 @@ export default async function AnalysisDetailPage({ params }: Props) {
     },
   }[row.status];
 
+  const submittedBy = [row.submitterName, row.submitterPhone].filter(Boolean).join(" · ");
+
   return (
     <div className="px-6 py-8 lg:px-10">
       <p className="text-sm text-slate-400">
         <Link href="/analyses" className="hover:text-yaqeen-700">
           Analyses
         </Link>
-        <span> / {row.orderReference}</span>
+        <span> / {row.orderReference ?? row.id}</span>
       </p>
       <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
         Payment proof analysis
@@ -78,23 +89,22 @@ export default async function AnalysisDetailPage({ params }: Props) {
             <banner.Icon className="h-5 w-5" />
           </span>
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-3">
-              <p className={`text-lg font-bold ${banner.title}`}>
-                {row.status === AnalysisStatus.READY_FOR_CONFIRMATION
-                  ? "Ready"
-                  : row.status === AnalysisStatus.MANUAL_REVIEW
-                    ? "Needs review"
-                    : "Suspicious"}
-              </p>
-              {total > 0 ? (
-                <p className={`text-lg font-bold ${banner.title}`}>{total} / 100</p>
-              ) : null}
-            </div>
-            <p className="text-sm text-slate-700">{row.note}</p>
+            <p className={`text-lg font-bold ${banner.title}`}>
+              {row.status === AnalysisStatus.READY_FOR_CONFIRMATION
+                ? "Ready"
+                : row.status === AnalysisStatus.MANUAL_REVIEW
+                  ? "Needs review"
+                  : "Suspicious"}
+            </p>
+            <p className="text-sm text-slate-700">{statusNote(row.status)}</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant={banner.action}>Mark reviewed</Button>
+          <ReviewButton
+            analysisId={row.id}
+            variant={banner.action}
+            alreadyReviewed={Boolean(row.reviewedAt)}
+          />
           <Button href="/analyses" variant={banner.outline}>
             Back to analyses
           </Button>
@@ -104,38 +114,45 @@ export default async function AnalysisDetailPage({ params }: Props) {
       <div className="mt-5 grid gap-5 lg:grid-cols-2">
         <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-card">
           <h2 className="mb-4 text-base font-semibold text-slate-900">Submitted proof</h2>
-          <PhoneReceipt />
+          {row.screenshotUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={row.screenshotUrl}
+              alt="Submitted payment proof"
+              className="max-h-[420px] w-full rounded-lg border border-slate-100 object-contain bg-slate-50"
+            />
+          ) : (
+            <div className="flex h-48 flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 text-slate-500">
+              <IconImage className="h-8 w-8" />
+              <p className="mt-2 text-sm">No screenshot preview</p>
+            </div>
+          )}
           <dl className="mt-6 space-y-2 text-sm">
-            <Row label="Submitted at" value={row.submittedAt} />
-            <Row label="Submitted by" value={row.submittedBy} />
+            <Row label="Submitted at" value={formatWhen(row.createdAt)} />
+            <Row label="Submitted by" value={submittedBy || "—"} />
             <Row label="Source" value={row.source} />
-            <Row label="File name" value={row.fileName} />
+            <Row label="File name" value={row.fileName ?? "—"} />
+            {row.reviewedAt ? <Row label="Reviewed at" value={formatWhen(row.reviewedAt)} /> : null}
           </dl>
         </section>
 
         <div className="space-y-5">
           <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-card">
-            <h2 className="mb-3 text-base font-semibold text-slate-900">Why this was flagged</h2>
-            {row.flags.length === 0 ? (
+            <h2 className="mb-3 text-base font-semibold text-slate-900">Risk signals</h2>
+            {row.signals.length === 0 ? (
               <p className="text-sm text-slate-500">
-                No blocking signals in this placeholder. Merchant confirmation is still required.
+                No blocking signals. Merchant confirmation is still required.
               </p>
             ) : (
               <ul className="divide-y divide-slate-100">
-                {row.flags.map((flag) => {
-                  const Icon = flagIcons[flag.icon];
-                  return (
-                    <li key={flag.code} className="flex items-center gap-3 py-3">
-                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-red-50 text-red-600">
-                        <Icon className="h-4 w-4" />
-                      </span>
-                      <span className="flex-1 text-sm font-medium text-slate-800">
-                        {flag.label}
-                      </span>
-                      <span className="text-sm font-semibold text-red-600">+{flag.points}</span>
-                    </li>
-                  );
-                })}
+                {row.signals.map((signal) => (
+                  <li key={signal.code} className="py-3">
+                    <p className="text-sm font-medium text-slate-800">{signal.message}</p>
+                    <p className="mt-0.5 font-mono text-xs text-slate-500">
+                      {signal.code} · {signal.severity}
+                    </p>
+                  </li>
+                ))}
               </ul>
             )}
           </section>
@@ -144,23 +161,33 @@ export default async function AnalysisDetailPage({ params }: Props) {
             <h2 className="mb-3 text-base font-semibold text-slate-900">Extracted details</h2>
             <dl className="space-y-2 text-sm">
               <Row label="Provider" value={providerLabel(row.provider)} />
-              <Row label="Amount" value={formatPkr(row.amountPkr)} />
-              {row.expectedAmountPkr != null ? (
+              <Row
+                label="Amount"
+                value={
+                  row.extracted?.amount != null ? formatPkr(row.extracted.amount) : "Not extracted"
+                }
+              />
+              {row.expectedAmount != null ? (
                 <Row
                   label="Expected"
-                  value={formatPkr(row.expectedAmountPkr)}
-                  emphasize={row.expectedAmountPkr !== row.amountPkr}
+                  value={formatPkr(row.expectedAmount)}
+                  emphasize={
+                    row.extracted?.amount != null && row.extracted.amount !== row.expectedAmount
+                  }
                 />
               ) : null}
-              <Row label="Recipient" value={row.recipient} />
-              <Row label="Transaction ID" value={row.transactionId} />
+              <Row label="Recipient" value={row.extracted?.payeeHint ?? "—"} />
+              <Row label="Transaction ID" value={row.extracted?.transactionId ?? "—"} />
+              <Row label="Order" value={row.orderReference ?? "—"} />
             </dl>
           </section>
         </div>
       </div>
 
       <InfoBanner className="mt-5">
-        Yaqeen assesses risk indicators. It does not confirm bank settlement.
+        {row.status === AnalysisStatus.READY_FOR_CONFIRMATION
+          ? PAYMENT_SCREENING_DISCLAIMER
+          : "Yaqeen assesses risk indicators. It does not confirm bank settlement."}
       </InfoBanner>
     </div>
   );
