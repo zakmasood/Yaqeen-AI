@@ -26,6 +26,7 @@ export interface RiskSignal {
 export interface AnalysisResult {
   id: string;
   orderId: string | null;
+  orderReference: string | null;
   status: AnalysisStatus;
   provider: PaymentProvider;
   extracted: ExtractedTransaction | null;
@@ -33,6 +34,13 @@ export interface AnalysisResult {
   disclaimer: string;
   createdAt: string;
   updatedAt: string;
+  source: string;
+  expectedAmount: number | null;
+  screenshotUrl: string | null;
+  fileName: string | null;
+  reviewedAt: string | null;
+  submitterName: string | null;
+  submitterPhone: string | null;
 }
 
 /** What the merchant expects for a given order before confirming payment. */

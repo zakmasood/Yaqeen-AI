@@ -20,13 +20,14 @@ Treat them as **sensitive personal and financial data**.
 
 | Secret                               | Allowed where               |
 | ------------------------------------ | --------------------------- |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY`      | Browser                     |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY`      | Browser (auth cookies)      |
 | `SUPABASE_SERVICE_ROLE_KEY`          | API / trusted jobs **only** |
 | `AI_VISION_API_KEY`                  | API only                    |
 | `WHATSAPP_APP_SECRET` / access token | API only                    |
 
 - Never commit `.env` or real keys.
 - Frontend must not import service-role credentials.
+- Dashboard API calls use the user JWT; the API verifies it then queries with the service role.
 
 ## Logging restrictions
 
@@ -36,9 +37,9 @@ Treat them as **sensitive personal and financial data**.
 
 ## Row-level security
 
-- Migrations document future RLS direction.
-- Enable and test RLS before exposing merchant data to authenticated clients.
-- Until RLS is live, prefer API-mediated access with service role on the server.
+- RLS is enabled on merchant-scoped tables. Authenticated clients may **select** only rows for `merchant_users.auth_user_id = auth.uid()`.
+- Inserts/updates go through the API with the service role (bypasses RLS).
+- Public customer submit is slug-scoped (`POST /api/v1/public/submissions`); it must not accept an arbitrary `merchant_id`.
 
 ## Data retention
 
@@ -48,5 +49,6 @@ Treat them as **sensitive personal and financial data**.
 
 ## Webhooks
 
-- Validate WhatsApp webhook signatures before trusting payloads.
+- Validate WhatsApp webhook signatures before trusting payloads (not yet enforced).
 - Keep verify tokens out of client code and public repos.
+- Ignore inbound media when no merchant matches the WhatsApp business number — do not invent a tenant.

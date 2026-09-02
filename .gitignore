@@ -1,3 +1,6 @@
+# Dependencies
+node_modules/
+
 # pnpm store (CI caches this under $CI_PROJECT_DIR/.pnpm)
 .pnpm/
 .pnpm-store/

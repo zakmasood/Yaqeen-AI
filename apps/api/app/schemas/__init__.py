@@ -39,6 +39,7 @@ class RiskSignal(BaseModel):
 class AnalysisResult(BaseModel):
     id: str
     order_id: str | None = None
+    order_reference: str | None = None
     status: AnalysisStatus
     provider: PaymentProvider
     extracted: ExtractedTransaction | None = None
@@ -46,18 +47,26 @@ class AnalysisResult(BaseModel):
     disclaimer: str = PAYMENT_SCREENING_DISCLAIMER
     created_at: datetime
     updated_at: datetime
-
-
-class AnalysisCreateRequest(BaseModel):
-    order_id: str | None = None
-    merchant_id: str | None = None
-    # Screenshot upload handled via multipart on a future endpoint — not fake AI here.
-    notes: str | None = None
+    source: str = "upload"
+    expected_amount: float | None = None
+    screenshot_url: str | None = None
+    file_name: str | None = None
+    reviewed_at: datetime | None = None
+    submitter_name: str | None = None
+    submitter_phone: str | None = None
 
 
 class AnalysisListResponse(BaseModel):
     items: list[AnalysisResult] = Field(default_factory=list)
     total: int = 0
+
+
+class MeResponse(BaseModel):
+    merchant_id: str
+    name: str
+    slug: str
+    email: str | None = None
+    role: str
 
 
 class PaymentExpectation(BaseModel):
@@ -70,7 +79,6 @@ class PaymentExpectation(BaseModel):
 
 
 class OrderCreateRequest(BaseModel):
-    merchant_id: str
     order_reference: str
     expected_amount: float
     currency: str = "PKR"
@@ -89,6 +97,10 @@ class OrderResponse(BaseModel):
     created_at: datetime
 
 
+class OrderListResponse(BaseModel):
+    items: list[OrderResponse] = Field(default_factory=list)
+
+
 class MerchantAccountResponse(BaseModel):
     id: str
     merchant_id: str
@@ -99,10 +111,13 @@ class MerchantAccountResponse(BaseModel):
 
 
 class MerchantAccountCreateRequest(BaseModel):
-    merchant_id: str
     provider: PaymentProvider
     account_label: str
     account_identifier: str
+
+
+class MerchantAccountListResponse(BaseModel):
+    items: list[MerchantAccountResponse] = Field(default_factory=list)
 
 
 class WhatsAppWebhookChallenge(BaseModel):
