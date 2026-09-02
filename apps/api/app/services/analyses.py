@@ -212,7 +212,7 @@ def find_or_create_order(
     client = require_supabase()
     found = (
         client.table("orders")
-        .select("id, order_reference, expected_amount")
+        .select("id, order_reference, expected_amount, expected_provider, expected_account_id")
         .eq("merchant_id", merchant_id)
         .eq("order_reference", order_reference)
         .limit(1)
@@ -246,3 +246,74 @@ def find_or_create_order(
     if not row:
         return None, order_reference, expected_amount
     return str(row["id"]), str(row["order_reference"]), expected_amount
+
+
+def _account_identifier(
+    account_id: str | None,
+    merchant_id: str,
+    provider: str | None,
+) -> str | None:
+    if not account_id and not provider:
+        return None
+    client = require_supabase()
+    if account_id:
+        found = (
+            client.table("merchant_payment_accounts")
+            .select("account_identifier")
+            .eq("id", account_id)
+            .eq("merchant_id", merchant_id)
+            .limit(1)
+            .execute()
+        )
+        if found.data:
+            return str(found.data[0].get("account_identifier") or "") or None
+    if provider:
+        found = (
+            client.table("merchant_payment_accounts")
+            .select("account_identifier")
+            .eq("merchant_id", merchant_id)
+            .eq("provider", provider)
+            .eq("is_active", True)
+            .limit(1)
+            .execute()
+        )
+        if found.data:
+            return str(found.data[0].get("account_identifier") or "") or None
+    return None
+
+
+def get_screening_expectation(
+    merchant_id: str,
+    order_id: str | None,
+    fallback_amount: float | None,
+    fallback_provider: PaymentProvider | None,
+    fallback_account_id: str | None = None,
+) -> tuple[float | None, PaymentProvider | None, str | None]:
+    """Resolve expected amount, provider, and payee identifier for matching."""
+    amount = fallback_amount
+    provider = fallback_provider
+    account_id = fallback_account_id
+    if order_id:
+        client = require_supabase()
+        found = (
+            client.table("orders")
+            .select("expected_amount, expected_provider, expected_account_id")
+            .eq("id", order_id)
+            .eq("merchant_id", merchant_id)
+            .limit(1)
+            .execute()
+        )
+        if found.data:
+            row = found.data[0]
+            if row.get("expected_amount") is not None:
+                amount = float(row["expected_amount"])
+            if row.get("expected_provider"):
+                provider = _as_provider(row.get("expected_provider"))
+            if row.get("expected_account_id"):
+                account_id = str(row["expected_account_id"])
+    payee = _account_identifier(
+        account_id,
+        merchant_id,
+        provider.value if provider else None,
+    )
+    return amount, provider, payee

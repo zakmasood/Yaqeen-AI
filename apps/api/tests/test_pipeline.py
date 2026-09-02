@@ -1,8 +1,13 @@
 """Screening pipeline unit tests — no live Supabase, no fake authenticity scores."""
 
-from app.models.enums import AnalysisStatus
+from types import SimpleNamespace
+
+import pytest
+
+from app.models.enums import AnalysisStatus, PaymentProvider
 from app.schemas import ExtractedTransaction, WhatsAppWebhookPayload
 from app.services.screening import collect_screening_outcome
+from app.services.vision import VisionAnalysisService, extracted_from_vision, parse_json_object
 from app.services.whatsapp_ingestion import iter_inbound_images
 
 
@@ -37,6 +42,112 @@ def test_pipeline_real_extraction_without_signals_ready() -> None:
     )
     assert status == AnalysisStatus.READY_FOR_CONFIRMATION
     assert signals == []
+
+
+def test_amount_mismatch_is_suspicious() -> None:
+    extracted = ExtractedTransaction(transaction_id="ABC-1", amount=2500)
+    status, signals = collect_screening_outcome(
+        extracted=extracted,
+        vision_result={"provider": "EASYPAISA", "amount": 2500, "transaction_id": "ABC-1"},
+        duplicate_ids=[],
+        expected_amount=5000,
+    )
+    assert status == AnalysisStatus.SUSPICIOUS
+    assert any(signal.code == "AMOUNT_MISMATCH" for signal in signals)
+
+
+def test_provider_mismatch_is_manual_review() -> None:
+    extracted = ExtractedTransaction(
+        provider=PaymentProvider.JAZZCASH,
+        transaction_id="ABC-1",
+        amount=5000,
+    )
+    status, signals = collect_screening_outcome(
+        extracted=extracted,
+        vision_result={},
+        duplicate_ids=[],
+        expected_amount=5000,
+        expected_provider=PaymentProvider.EASYPAISA,
+    )
+    assert status == AnalysisStatus.MANUAL_REVIEW
+    assert any(signal.code == "PROVIDER_MISMATCH" for signal in signals)
+
+
+def test_payee_mismatch_is_manual_review() -> None:
+    extracted = ExtractedTransaction(
+        transaction_id="ABC-1",
+        amount=5000,
+        payee_hint="0321 9999999",
+    )
+    status, signals = collect_screening_outcome(
+        extracted=extracted,
+        vision_result={},
+        duplicate_ids=[],
+        expected_amount=5000,
+        expected_payee="0300••••567",
+    )
+    assert status == AnalysisStatus.MANUAL_REVIEW
+    assert any(signal.code == "PAYEE_MISMATCH" for signal in signals)
+
+
+def test_ambiguous_extraction_is_manual_review() -> None:
+    extracted = ExtractedTransaction(amount=5000)
+    status, signals = collect_screening_outcome(
+        extracted=extracted,
+        vision_result={},
+        duplicate_ids=[],
+        expected_amount=5000,
+        ambiguous=True,
+    )
+    assert status == AnalysisStatus.MANUAL_REVIEW
+    assert any(signal.code == "EXTRACTION_AMBIGUOUS" for signal in signals)
+
+
+def test_extracted_from_vision_maps_json() -> None:
+    extracted, ambiguous = extracted_from_vision(
+        {
+            "provider": "easypaisa",
+            "amount": 5000,
+            "currency": "PKR",
+            "transaction_id": "EP-1",
+            "payee_hint": "03001234567",
+            "ambiguous": False,
+        }
+    )
+    assert extracted is not None
+    assert extracted.provider == PaymentProvider.EASYPAISA
+    assert extracted.amount == 5000
+    assert extracted.transaction_id == "EP-1"
+    assert extracted.payee_hint == "03001234567"
+    assert ambiguous is False
+
+
+def test_extracted_from_vision_refuses_garbage() -> None:
+    extracted, ambiguous = extracted_from_vision(
+        {
+            "provider": "maybe easypaisa?",
+            "amount": "about five thousand",
+            "transaction_id": 12345,
+            "ambiguous": "yes",
+        }
+    )
+    assert extracted is None
+    assert ambiguous is True
+
+
+def test_parse_json_object_strips_fences() -> None:
+    payload = parse_json_object('```json\n{"amount": 10}\n```')
+    assert payload == {"amount": 10}
+
+
+@pytest.mark.asyncio
+async def test_vision_returns_empty_without_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "app.services.vision.get_settings",
+        lambda: SimpleNamespace(ai_vision_api_key="", ai_vision_model=""),
+    )
+    result = await VisionAnalysisService().analyze_image(b"not-an-image")
+    assert result == {}
 
 
 def test_iter_inbound_images() -> None:

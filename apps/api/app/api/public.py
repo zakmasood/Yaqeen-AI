@@ -29,7 +29,7 @@ async def create_public_submission(
             detail="Merchant slug and order reference are required",
         )
     merchant = get_merchant_by_slug(slug)
-    order_id, stored_ref, _amount = find_or_create_order(
+    order_id, stored_ref, amount = find_or_create_order(
         str(merchant["id"]),
         reference,
         expected_amount=None,
@@ -46,6 +46,7 @@ async def create_public_submission(
         order_id=order_id,
         order_reference=stored_ref or reference,
         expected_provider=None,
+        expected_amount=amount,
         submitter_name=name.strip() if name else None,
         submitter_phone=phone.strip() if phone else None,
     )

@@ -8,21 +8,21 @@ from datetime import UTC, datetime
 
 from app.core.supabase import require_supabase
 from app.models.enums import PAYMENT_SCREENING_DISCLAIMER, PaymentProvider
-from app.schemas import AnalysisResult, ExtractedTransaction
-from app.services.analyses import get_analysis_by_id
+from app.schemas import AnalysisResult
+from app.services.analyses import get_analysis_by_id, get_screening_expectation
 from app.services.duplicate_detection import DuplicateDetectionService
 from app.services.ocr import OcrService
 from app.services.screening import collect_screening_outcome, extraction_is_empty
 from app.services.storage import StorageService, resolve_content_type, validate_upload_size
-from app.services.vision import VisionAnalysisService
+from app.services.vision import VisionAnalysisService, extracted_from_vision
 
 logger = logging.getLogger(__name__)
 
 
 class AnalysisPipeline:
     """
-    Store screenshot → OCR stub → vision stub → duplicate stub → risk score → persist.
-    ponytail: runs in-request. Move to a queue if OCR/vision ever become real network calls.
+    Store screenshot → vision extract → match / duplicate lookup → persist.
+    ponytail: runs in-request. Move to a queue if vision calls become too slow.
     """
 
     def __init__(
@@ -48,6 +48,8 @@ class AnalysisPipeline:
         order_id: str | None,
         order_reference: str | None,
         expected_provider: PaymentProvider | None,
+        expected_amount: float | None = None,
+        expected_account_id: str | None = None,
         submitter_name: str | None = None,
         submitter_phone: str | None = None,
     ) -> AnalysisResult:
@@ -95,26 +97,34 @@ class AnalysisPipeline:
             ).execute()
             stored_bytes = image_bytes
 
-        ocr_text = await self.ocr.extract_text(stored_bytes)
+        _ = await self.ocr.extract_text(stored_bytes)
         vision_result = await self.vision.analyze_image(stored_bytes)
-        extracted: ExtractedTransaction | None = None
-        if ocr_text.strip():
-            # Real providers will parse fields; do not invent them from stub output.
-            extracted = ExtractedTransaction(
-                provider=provider,
-                raw_text_snippet=ocr_text[:500],
-            )
+        extracted, ambiguous = extracted_from_vision(vision_result)
+
+        expected_amount, expected_provider, expected_payee = get_screening_expectation(
+            merchant_id,
+            order_id,
+            expected_amount,
+            expected_provider,
+            expected_account_id,
+        )
 
         duplicate_ids: list[str] = []
         if extracted and extracted.transaction_id:
             duplicate_ids = await self.duplicates.find_duplicates(
-                extracted.transaction_id, merchant_id
+                extracted.transaction_id,
+                merchant_id,
+                exclude_analysis_id=analysis_id,
             )
 
         status, signals = collect_screening_outcome(
             extracted=extracted,
             vision_result=vision_result,
             duplicate_ids=duplicate_ids,
+            expected_amount=expected_amount,
+            expected_provider=expected_provider,
+            expected_payee=expected_payee,
+            ambiguous=ambiguous,
         )
 
         now = datetime.now(UTC).isoformat()
