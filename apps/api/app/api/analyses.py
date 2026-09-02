@@ -53,7 +53,7 @@ async def create_analysis(
     expected_account_id: Annotated[str | None, Form()] = None,
 ) -> AnalysisResult:
     provider = _parse_provider(expected_provider)
-    order_id, stored_ref, _amount = find_or_create_order(
+    order_id, stored_ref, amount = find_or_create_order(
         merchant.merchant_id,
         order_reference.strip() if order_reference else None,
         expected_amount,
@@ -70,4 +70,6 @@ async def create_analysis(
         order_id=order_id,
         order_reference=stored_ref,
         expected_provider=provider,
+        expected_amount=amount,
+        expected_account_id=expected_account_id,
     )

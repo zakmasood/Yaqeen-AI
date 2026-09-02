@@ -34,22 +34,25 @@ Merchant dashboard sends `Authorization: Bearer <access_token>`. The API verifie
   - `POST /api/v1/public/submissions` (slug-scoped)
   - `/api/v1/webhooks/whatsapp`
 - Service boundaries:
-  - OCR / vision / duplicate detection — passthrough stubs (empty results, no invented detections)
+  - Vision analysis — OpenAI-compatible JSON extraction when `AI_VISION_API_KEY` is set; empty otherwise
+  - OCR — unused passthrough (one vision call is enough for screenshots)
+  - Duplicate detection — prior `transaction_id` lookup for the same merchant
   - Risk scoring — maps discrete signals to operational status only
   - Storage — private bucket, short-lived signed URLs
   - WhatsApp ingestion — match merchant by `whatsapp_business_number`, then same pipeline
 
 ## Analysis pipeline
 
-Runs **in-request** (upgrade to a job queue when real OCR/vision are wired):
+Runs **in-request** (upgrade to a job queue if vision calls become too slow):
 
 1. Ingest (WhatsApp media or upload) → private storage
-2. OCR + vision stubs → empty extraction unless a real provider is added
-3. Duplicate / reused transaction-id stub
-4. If extraction is empty, emit `SCREENING_UNAVAILABLE` (MEDIUM) → `MANUAL_REVIEW`
-5. Persist analysis, signals, extraction; merchant UI reads via API
+2. Vision JSON extract → amount, txn id, provider, payee/payer (nulls if unreadable; no invented fields)
+3. Match against order expected amount / provider / receiving account
+4. Duplicate / reused transaction-id check against prior extractions
+5. Risk scoring → `READY_FOR_CONFIRMATION` | `MANUAL_REVIEW` | `SUSPICIOUS`
+6. Persist analysis, signals, extraction; merchant UI reads via API
 
-Stubs must not emit `READY_FOR_CONFIRMATION`. That status is reserved for a future provider that actually extracts fields and finds no blocking signals.
+Without `AI_VISION_API_KEY`, extraction is empty and status is `MANUAL_REVIEW` with `SCREENING_UNAVAILABLE`. Never emit authenticity percentages.
 
 ## Supabase
 

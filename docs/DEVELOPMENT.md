@@ -35,6 +35,8 @@ values (
 
 Without this row, login succeeds at Supabase but API calls return 403.
 
+Without `AI_VISION_API_KEY`, screening stays on `MANUAL_REVIEW` (`SCREENING_UNAVAILABLE`). Set `AI_VISION_API_KEY` (and optionally `AI_VISION_MODEL`, default `gpt-4o-mini`) for structured extraction and matching.
+
 If Postgres is already bound to port 3000 on your machine, run the web app on 3001 and keep `http://localhost:3001` in `CORS_ORIGINS`.
 
 ## Running locally
