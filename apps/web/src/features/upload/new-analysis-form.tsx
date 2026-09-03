@@ -1,22 +1,29 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SelectField, TextField } from "@/components/ui/field";
 import { InfoBanner } from "@/components/ui/info-banner";
 import { FileDropzone } from "@/components/upload/file-dropzone";
-import { createAnalysis } from "@/lib/api";
+import { CustomerInviteCard } from "@/components/customer-invite";
+import { createAnalysis, fetchMe } from "@/lib/api";
+import type { MerchantMe } from "@/lib/api";
 import { PaymentProvider } from "@yaqeen/shared";
 
 export function NewAnalysisForm() {
   const router = useRouter();
+  const [me, setMe] = useState<MerchantMe | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [amount, setAmount] = useState("");
   const [provider, setProvider] = useState<string>(PaymentProvider.EASYPAISA);
   const [order, setOrder] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchMe().then(setMe).catch(() => undefined);
+  }, []);
 
   async function onSubmit() {
     if (!file) {
@@ -80,6 +87,18 @@ export function NewAnalysisForm() {
           </div>
         </section>
       </div>
+
+      {me?.slug ? (
+        <div className="mt-5">
+          <CustomerInviteCard
+            merchantName={me.name}
+            merchantSlug={me.slug}
+            orderReference={order}
+            amountPkr={amount}
+            showOrderFields={false}
+          />
+        </div>
+      ) : null}
 
       <InfoBanner tone="success" className="mt-5">
         Expected details let Yaqeen compare the screenshot against what your business should
