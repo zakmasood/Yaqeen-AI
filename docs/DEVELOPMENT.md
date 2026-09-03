@@ -12,7 +12,7 @@
 1. Copy `.env.example` → `.env` (and `apps/web/.env.local` for Next public vars).
 2. `pnpm install` at repo root.
 3. Create API venv and install: `pip install -e ".[dev]"` inside `apps/api`.
-4. Apply Supabase migrations (`supabase db push` or SQL editor), including Phase 2 (`20260902000000_phase2_auth_pipeline.sql`).
+4. Apply Supabase migrations (`supabase db push` or SQL editor), including Phase 2 (`20260902000000_phase2_auth_pipeline.sql`) and Phase 4 (`20260903000000_phase4_image_hash.sql`).
 5. Run `supabase/seed.sql` for the demo merchant (`slug = manoversa`, order `MV-1048`).
 
 ### Auth user (required for the dashboard)
@@ -35,7 +35,7 @@ values (
 
 Without this row, login succeeds at Supabase but API calls return 403.
 
-Without `AI_VISION_API_KEY`, screening stays on `MANUAL_REVIEW` (`SCREENING_UNAVAILABLE`). Set `AI_VISION_API_KEY` (and optionally `AI_VISION_MODEL`, default `gpt-4o-mini`) for structured extraction and matching.
+Without `AI_VISION_API_KEY`, extraction is empty and screening stays on `MANUAL_REVIEW` (`SCREENING_UNAVAILABLE`), unless the same screenshot file or a near-duplicate image was already submitted for that merchant (`EXACT_IMAGE_REUSED` / `NEAR_DUPLICATE_IMAGE` → `SUSPICIOUS`). Set `AI_VISION_API_KEY` (and optionally `AI_VISION_MODEL`, default `gpt-4o-mini`) for structured extraction and matching.
 
 If Postgres is already bound to port 3000 on your machine, run the web app on 3001 and keep `http://localhost:3001` in `CORS_ORIGINS`.
 

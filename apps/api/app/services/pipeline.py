@@ -11,6 +11,7 @@ from app.models.enums import PAYMENT_SCREENING_DISCLAIMER, PaymentProvider
 from app.schemas import AnalysisResult
 from app.services.analyses import get_analysis_by_id, get_screening_expectation
 from app.services.duplicate_detection import DuplicateDetectionService
+from app.services.image_hash import difference_hash
 from app.services.ocr import OcrService
 from app.services.screening import collect_screening_outcome, extraction_is_empty
 from app.services.storage import StorageService, resolve_content_type, validate_upload_size
@@ -78,12 +79,16 @@ class AnalysisPipeline:
         analysis_id = str(row["id"])
 
         stored_bytes = b""
+        sha256_hex: str | None = None
+        phash: str | None = None
         if image_bytes:
             validate_upload_size(len(image_bytes))
             normalized_type = resolve_content_type(content_type, filename)
             path = self.storage.store_screenshot(
                 merchant_id, filename or "proof", image_bytes, normalized_type
             )
+            sha256_hex = hashlib.sha256(image_bytes).hexdigest()
+            phash = difference_hash(image_bytes)
             client.table("screenshots").insert(
                 {
                     "analysis_id": analysis_id,
@@ -91,7 +96,8 @@ class AnalysisPipeline:
                     "storage_path": path,
                     "content_type": normalized_type,
                     "byte_size": len(image_bytes),
-                    "sha256": hashlib.sha256(image_bytes).hexdigest(),
+                    "sha256": sha256_hex,
+                    "phash": phash,
                     "original_filename": filename,
                 }
             ).execute()
@@ -117,6 +123,16 @@ class AnalysisPipeline:
                 exclude_analysis_id=analysis_id,
             )
 
+        exact_image_ids: list[str] = []
+        near_image_ids: list[str] = []
+        if sha256_hex or phash:
+            exact_image_ids, near_image_ids = await self.duplicates.find_image_matches(
+                merchant_id=merchant_id,
+                sha256=sha256_hex,
+                phash=phash,
+                exclude_analysis_id=analysis_id,
+            )
+
         status, signals = collect_screening_outcome(
             extracted=extracted,
             vision_result=vision_result,
@@ -125,6 +141,8 @@ class AnalysisPipeline:
             expected_provider=expected_provider,
             expected_payee=expected_payee,
             ambiguous=ambiguous,
+            exact_image_ids=exact_image_ids,
+            near_image_ids=near_image_ids,
         )
 
         now = datetime.now(UTC).isoformat()

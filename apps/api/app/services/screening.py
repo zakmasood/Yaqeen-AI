@@ -20,6 +20,18 @@ TXN_REUSED = RiskSignal(
     message="This transaction ID appears on a prior analysis.",
 )
 
+EXACT_IMAGE_REUSED = RiskSignal(
+    code="EXACT_IMAGE_REUSED",
+    severity=RiskSeverity.HIGH,
+    message="This screenshot file was submitted on a prior analysis.",
+)
+
+NEAR_DUPLICATE_IMAGE = RiskSignal(
+    code="NEAR_DUPLICATE_IMAGE",
+    severity=RiskSeverity.HIGH,
+    message="A near-identical screenshot was submitted on a prior analysis.",
+)
+
 AMOUNT_MISMATCH = RiskSignal(
     code="AMOUNT_MISMATCH",
     severity=RiskSeverity.HIGH,
@@ -81,37 +93,41 @@ def collect_screening_outcome(
     expected_provider: PaymentProvider | None = None,
     expected_payee: str | None = None,
     ambiguous: bool = False,
+    exact_image_ids: list[str] | None = None,
+    near_image_ids: list[str] | None = None,
 ) -> tuple[AnalysisStatus, list[RiskSignal]]:
     """
-    Map extraction + expectations to status + signals.
-    Empty extraction → MANUAL_REVIEW via SCREENING_UNAVAILABLE.
+    Map extraction + expectations + image matches to status + signals.
+    Empty extraction → SCREENING_UNAVAILABLE; image reuse can still raise SUSPICIOUS.
     """
     _ = vision_result
     signals: list[RiskSignal] = []
     if extraction_is_empty(extracted):
         signals.append(SCREENING_UNAVAILABLE)
-        status = RiskScoringService().score_signals(signals)
-        return status, signals
-
-    assert extracted is not None
-    if ambiguous or (extracted.amount is None and not extracted.transaction_id):
-        signals.append(EXTRACTION_AMBIGUOUS)
-    if (
-        expected_amount is not None
-        and extracted.amount is not None
-        and abs(extracted.amount - expected_amount) > PKR_EPSILON
-    ):
-        signals.append(AMOUNT_MISMATCH)
-    if (
-        expected_provider
-        and expected_provider != PaymentProvider.UNKNOWN
-        and extracted.provider != PaymentProvider.UNKNOWN
-        and extracted.provider != expected_provider
-    ):
-        signals.append(PROVIDER_MISMATCH)
-    if not payee_loosely_matches(extracted.payee_hint, expected_payee):
-        signals.append(PAYEE_MISMATCH)
+    else:
+        assert extracted is not None
+        if ambiguous or (extracted.amount is None and not extracted.transaction_id):
+            signals.append(EXTRACTION_AMBIGUOUS)
+        if (
+            expected_amount is not None
+            and extracted.amount is not None
+            and abs(extracted.amount - expected_amount) > PKR_EPSILON
+        ):
+            signals.append(AMOUNT_MISMATCH)
+        if (
+            expected_provider
+            and expected_provider != PaymentProvider.UNKNOWN
+            and extracted.provider != PaymentProvider.UNKNOWN
+            and extracted.provider != expected_provider
+        ):
+            signals.append(PROVIDER_MISMATCH)
+        if not payee_loosely_matches(extracted.payee_hint, expected_payee):
+            signals.append(PAYEE_MISMATCH)
     if duplicate_ids:
         signals.append(TXN_REUSED)
+    if exact_image_ids:
+        signals.append(EXACT_IMAGE_REUSED)
+    elif near_image_ids:
+        signals.append(NEAR_DUPLICATE_IMAGE)
     status = RiskScoringService().score_signals(signals)
     return status, signals
