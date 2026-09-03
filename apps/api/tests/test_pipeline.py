@@ -1,14 +1,27 @@
 """Screening pipeline unit tests — no live Supabase, no fake authenticity scores."""
 
+from io import BytesIO
 from types import SimpleNamespace
 
 import pytest
+from PIL import Image, ImageDraw
 
 from app.models.enums import AnalysisStatus, PaymentProvider
 from app.schemas import ExtractedTransaction, WhatsAppWebhookPayload
+from app.services.duplicate_detection import classify_image_matches
+from app.services.image_hash import difference_hash, hamming_distance
 from app.services.screening import collect_screening_outcome
 from app.services.vision import VisionAnalysisService, extracted_from_vision, parse_json_object
 from app.services.whatsapp_ingestion import iter_inbound_images
+
+
+def _png_halves(*, dark_left: bool) -> bytes:
+    image = Image.new("L", (32, 32), 255)
+    x0, x1 = (0, 15) if dark_left else (16, 31)
+    ImageDraw.Draw(image).rectangle([x0, 0, x1, 31], fill=0)
+    buf = BytesIO()
+    image.save(buf, format="PNG")
+    return buf.getvalue()
 
 
 def test_pipeline_empty_stubs_manual_review() -> None:
@@ -20,6 +33,84 @@ def test_pipeline_empty_stubs_manual_review() -> None:
     assert status == AnalysisStatus.MANUAL_REVIEW
     assert status != AnalysisStatus.READY_FOR_CONFIRMATION
     assert any(signal.code == "SCREENING_UNAVAILABLE" for signal in signals)
+    assert not any(
+        signal.code in {"EXACT_IMAGE_REUSED", "NEAR_DUPLICATE_IMAGE"} for signal in signals
+    )
+
+
+def test_empty_extraction_exact_image_is_suspicious() -> None:
+    status, signals = collect_screening_outcome(
+        extracted=None,
+        vision_result={},
+        duplicate_ids=[],
+        exact_image_ids=["prior-analysis"],
+    )
+    assert status == AnalysisStatus.SUSPICIOUS
+    assert any(signal.code == "SCREENING_UNAVAILABLE" for signal in signals)
+    assert any(signal.code == "EXACT_IMAGE_REUSED" for signal in signals)
+    assert not any(signal.code == "NEAR_DUPLICATE_IMAGE" for signal in signals)
+
+
+def test_ready_extraction_near_image_is_suspicious() -> None:
+    extracted = ExtractedTransaction(transaction_id="ABC-1", amount=100)
+    status, signals = collect_screening_outcome(
+        extracted=extracted,
+        vision_result={},
+        duplicate_ids=[],
+        near_image_ids=["prior-analysis"],
+    )
+    assert status == AnalysisStatus.SUSPICIOUS
+    assert any(signal.code == "NEAR_DUPLICATE_IMAGE" for signal in signals)
+
+
+def test_exact_image_wins_over_near() -> None:
+    status, signals = collect_screening_outcome(
+        extracted=None,
+        vision_result={},
+        duplicate_ids=[],
+        exact_image_ids=["exact-prior"],
+        near_image_ids=["near-prior"],
+    )
+    codes = [signal.code for signal in signals]
+    assert "EXACT_IMAGE_REUSED" in codes
+    assert "NEAR_DUPLICATE_IMAGE" not in codes
+
+
+def test_identical_pngs_share_dhash() -> None:
+    left = difference_hash(_png_halves(dark_left=True))
+    right = difference_hash(_png_halves(dark_left=True))
+    assert left is not None and right is not None
+    assert left == right
+    assert hamming_distance(left, right) == 0
+
+
+def test_different_pngs_have_large_hamming() -> None:
+    left = difference_hash(_png_halves(dark_left=True))
+    right = difference_hash(_png_halves(dark_left=False))
+    assert left is not None and right is not None
+    distance = hamming_distance(left, right)
+    assert distance is not None
+    assert distance > 10
+
+
+def test_unreadable_bytes_have_no_dhash() -> None:
+    assert difference_hash(b"not-an-image") is None
+
+
+def test_classify_image_matches_exact_and_near() -> None:
+    exact, near = classify_image_matches(
+        sha256="aaa",
+        phash="0000000000000000",
+        priors=[
+            {"analysis_id": "self", "sha256": "aaa", "phash": "0000000000000000"},
+            {"analysis_id": "exact", "sha256": "aaa", "phash": "ffffffffffffffff"},
+            {"analysis_id": "near", "sha256": "bbb", "phash": "0000000000000001"},
+            {"analysis_id": "far", "sha256": "ccc", "phash": "ffffffffffffffff"},
+        ],
+        exclude_analysis_id="self",
+    )
+    assert exact == ["exact"]
+    assert near == ["near"]
 
 
 def test_pipeline_reused_txn_is_suspicious() -> None:

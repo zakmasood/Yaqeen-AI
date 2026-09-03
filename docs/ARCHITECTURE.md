@@ -36,7 +36,7 @@ Merchant dashboard sends `Authorization: Bearer <access_token>`. The API verifie
 - Service boundaries:
   - Vision analysis — OpenAI-compatible JSON extraction when `AI_VISION_API_KEY` is set; empty otherwise
   - OCR — unused passthrough (one vision call is enough for screenshots)
-  - Duplicate detection — prior `transaction_id` lookup for the same merchant
+  - Duplicate detection — prior `transaction_id`, exact `sha256`, and near-duplicate dHash for the same merchant
   - Risk scoring — maps discrete signals to operational status only
   - Storage — private bucket, short-lived signed URLs
   - WhatsApp ingestion — match merchant by `whatsapp_business_number`, then same pipeline
@@ -45,19 +45,21 @@ Merchant dashboard sends `Authorization: Bearer <access_token>`. The API verifie
 
 Runs **in-request** (upgrade to a job queue if vision calls become too slow):
 
-1. Ingest (WhatsApp media or upload) → private storage
+1. Ingest (WhatsApp media or upload) → private storage; store `sha256` + 64-bit dHash (`phash`)
 2. Vision JSON extract → amount, txn id, provider, payee/payer (nulls if unreadable; no invented fields)
 3. Match against order expected amount / provider / receiving account
 4. Duplicate / reused transaction-id check against prior extractions
-5. Risk scoring → `READY_FOR_CONFIRMATION` | `MANUAL_REVIEW` | `SUSPICIOUS`
-6. Persist analysis, signals, extraction; merchant UI reads via API
+5. Exact file reuse (`sha256`) and near-duplicate image check (Hamming ≤ 10), merchant-scoped
+6. Risk scoring → `READY_FOR_CONFIRMATION` | `MANUAL_REVIEW` | `SUSPICIOUS`
+7. Persist analysis, signals, extraction; merchant UI reads via API
 
-Without `AI_VISION_API_KEY`, extraction is empty and status is `MANUAL_REVIEW` with `SCREENING_UNAVAILABLE`. Never emit authenticity percentages.
+Without `AI_VISION_API_KEY`, extraction is empty and status is `MANUAL_REVIEW` with `SCREENING_UNAVAILABLE`, unless an image reuse signal raises `SUSPICIOUS`. Never emit authenticity percentages. No Photoshop/ELA/template claims.
 
 ## Supabase
 
 - Tables: merchants, merchant_users, merchant_payment_accounts, orders, analyses, screenshots, extracted_transactions, risk_signals
 - Extra Phase 2 columns: `merchants.slug`, `analyses.order_reference`, `reviewed_at`, `submitter_name`, `submitter_phone`, `screenshots.original_filename`
+- Extra Phase 4 columns: `screenshots.phash` (16-hex dHash) plus index `(merchant_id, sha256)`
 - Private bucket `payment-screenshots`
 - **Service role** used only by the API / trusted jobs
 - RLS enabled with merchant isolation via `merchant_users.auth_user_id = auth.uid()` (service role bypasses for writes)
