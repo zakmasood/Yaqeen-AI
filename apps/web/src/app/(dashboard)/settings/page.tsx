@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SelectField, TextField } from "@/components/ui/field";
+import { CustomerInviteCard } from "@/components/customer-invite";
 import { getApiUrl, fetchMe, fetchMerchantAccounts, createMerchantAccount } from "@/lib/api";
 import type { MerchantAccount, MerchantMe } from "@/lib/api";
 import { PaymentProvider } from "@yaqeen/shared";
@@ -13,7 +14,6 @@ export default function SettingsPage() {
   const [me, setMe] = useState<MerchantMe | null>(null);
   const [accounts, setAccounts] = useState<MerchantAccount[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
   const [label, setLabel] = useState("");
   const [identifier, setIdentifier] = useState("");
   const [provider, setProvider] = useState<string>(PaymentProvider.EASYPAISA);
@@ -29,20 +29,6 @@ export default function SettingsPage() {
         setError(err instanceof Error ? err.message : "Could not load settings");
       });
   }, []);
-
-  const submitPath = me?.slug ? `/submit?merchant=${encodeURIComponent(me.slug)}` : "/submit";
-  const submitUrl =
-    typeof window === "undefined" ? submitPath : `${window.location.origin}${submitPath}`;
-
-  async function copyLink() {
-    try {
-      await navigator.clipboard.writeText(submitUrl);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setCopied(false);
-    }
-  }
 
   async function onAddAccount() {
     if (!label.trim() || !identifier.trim()) return;
@@ -93,20 +79,14 @@ export default function SettingsPage() {
           </dl>
         </Card>
 
-        <Card title="Customer submit link">
-          <p className="text-sm text-slate-600">
-            Share a link so a customer can upload proof without dashboard access.
-          </p>
-          <p className="mt-2 break-all font-mono text-xs text-slate-700">{submitUrl}</p>
-          <div className="mt-3 flex flex-wrap gap-3">
-            <Button variant="outline" onClick={copyLink}>
-              {copied ? "Copied" : "Copy link"}
-            </Button>
-            <a href={submitPath} className="text-sm font-semibold text-yaqeen-700">
-              Open submit flow →
-            </a>
-          </div>
-        </Card>
+        {me?.slug ? (
+          <CustomerInviteCard
+            merchantName={me.name}
+            merchantSlug={me.slug}
+            orderReference="MV-1048"
+            amountPkr="5000"
+          />
+        ) : null}
 
         <Card title="Receiving accounts">
           <div className="space-y-3">
@@ -158,12 +138,11 @@ export default function SettingsPage() {
           </div>
         </Card>
 
-        <Card title="WhatsApp">
+        <Card title="Inbound WhatsApp">
           <p className="text-sm text-slate-600">
-            Webhook verification and ingestion are handled by the API. Configure{" "}
-            <code className="rounded bg-slate-100 px-1">WHATSAPP_*</code> on the server. Match{" "}
-            <code className="rounded bg-slate-100 px-1">merchants.whatsapp_business_number</code> to
-            inbound media.
+            Customers can also send a screenshot to your business number later. That still needs{" "}
+            <code className="rounded bg-slate-100 px-1">WHATSAPP_*</code> on the API. The invite
+            above works without it.
           </p>
         </Card>
       </div>

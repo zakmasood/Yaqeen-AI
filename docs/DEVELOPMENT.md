@@ -37,12 +37,12 @@ Without this row, login succeeds at Supabase but API calls return 403.
 
 Without `AI_VISION_API_KEY`, extraction is empty and screening stays on `MANUAL_REVIEW` (`SCREENING_UNAVAILABLE`), unless the same screenshot file or a near-duplicate image was already submitted for that merchant (`EXACT_IMAGE_REUSED` / `NEAR_DUPLICATE_IMAGE` → `SUSPICIOUS`). Set `AI_VISION_API_KEY` (and optionally `AI_VISION_MODEL`, default `gpt-4o-mini`) for structured extraction and matching.
 
-If Postgres is already bound to port 3000 on your machine, run the web app on 3001 and keep `http://localhost:3001` in `CORS_ORIGINS`.
+Local web is pinned to port 3008 (`next dev -p 3008`) so it does not collide with Postgres on 3000. Keep `http://localhost:3008` in `CORS_ORIGINS`.
 
 ## Running locally
 
 ```bash
-# Terminal A — web
+# Terminal A — web (http://localhost:3008)
 pnpm dev:web
 
 # Terminal B — api (venv activated)
@@ -50,7 +50,7 @@ cd apps/api
 uvicorn app.main:app --reload --port 8000
 ```
 
-Sign in at `/login`. Customer submit: `/submit?merchant=manoversa`.
+Sign in at http://localhost:3008/login. Customer submit: http://localhost:3008/submit?merchant=manoversa.
 
 Without Supabase env vars, the UI shows a setup message on `/login` and does not fall back to fake analyses.
 
