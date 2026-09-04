@@ -45,8 +45,6 @@ describe("whatsappShareUrl", () => {
   });
 
   it("targets the customer when a phone is given", () => {
-    expect(whatsappShareUrl("hello", "03001234567")).toBe(
-      "https://wa.me/923001234567?text=hello",
-    );
+    expect(whatsappShareUrl("hello", "03001234567")).toBe("https://wa.me/923001234567?text=hello");
   });
 });

@@ -22,7 +22,9 @@ export function NewAnalysisForm() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchMe().then(setMe).catch(() => undefined);
+    fetchMe()
+      .then(setMe)
+      .catch(() => undefined);
   }, []);
 
   async function onSubmit() {
