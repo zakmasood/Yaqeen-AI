@@ -5,11 +5,11 @@ type Variant = "primary" | "secondary" | "outline" | "ghost" | "danger" | "dange
 
 const variants: Record<Variant, string> = {
   primary: "bg-yaqeen-700 text-white hover:bg-yaqeen-800",
-  secondary: "bg-white text-yaqeen-800 hover:bg-yaqeen-50",
-  outline: "bg-white text-yaqeen-700 ring-1 ring-inset ring-yaqeen-600 hover:bg-yaqeen-50",
-  ghost: "bg-transparent text-yaqeen-700 hover:underline",
+  secondary: "bg-lift text-ink hover:bg-line",
+  outline: "bg-transparent text-yaqeen-500 ring-1 ring-inset ring-yaqeen-600 hover:bg-lift",
+  ghost: "bg-transparent text-yaqeen-500 hover:underline",
   danger: "bg-red-700 text-white hover:bg-red-800",
-  dangerOutline: "bg-white text-red-700 ring-1 ring-inset ring-red-300 hover:bg-red-50",
+  dangerOutline: "bg-transparent text-danger ring-1 ring-inset ring-danger/40 hover:bg-danger-bg",
 };
 
 type ButtonProps = {

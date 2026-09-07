@@ -12,7 +12,7 @@
 1. Copy `.env.example` → `.env` (and `apps/web/.env.local` for Next public vars).
 2. `pnpm install` at repo root.
 3. Create API venv and install: `pip install -e ".[dev]"` inside `apps/api`.
-4. Apply Supabase migrations (`supabase db push` or SQL editor), including Phase 2 (`20260902000000_phase2_auth_pipeline.sql`) and Phase 4 (`20260903000000_phase4_image_hash.sql`).
+4. Apply Supabase migrations (`supabase db push` or SQL editor), including Phase 2 (`20260902000000_phase2_auth_pipeline.sql`), Phase 4 (`20260903000000_phase4_image_hash.sql`), and invites (`20260904000000_proof_invites.sql`).
 5. Run `supabase/seed.sql` for the demo merchant (`slug = manoversa`, order `MV-1048`).
 
 ### Auth user (required for the dashboard)

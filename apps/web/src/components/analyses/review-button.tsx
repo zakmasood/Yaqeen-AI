@@ -36,7 +36,7 @@ export function ReviewButton({
       <Button variant={variant} onClick={onClick} disabled={pending || alreadyReviewed}>
         {alreadyReviewed ? "Reviewed" : pending ? "Saving…" : "Mark reviewed"}
       </Button>
-      {error ? <p className="text-xs text-red-600">{error}</p> : null}
+      {error ? <p className="text-xs text-danger">{error}</p> : null}
     </div>
   );
 }

@@ -1,17 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
   customerProofMessage,
-  customerSubmitPath,
-  customerSubmitUrl,
+  inviteSubmitPath,
+  inviteSubmitUrl,
   normalizeWhatsAppPhone,
   whatsappShareUrl,
 } from "./customer-invite";
 
-describe("customer submit URL", () => {
-  it("scopes the path by merchant slug", () => {
-    expect(customerSubmitPath("manoversa")).toBe("/submit?merchant=manoversa");
-    expect(customerSubmitUrl("http://localhost:3008", "manoversa")).toBe(
-      "http://localhost:3008/submit?merchant=manoversa",
+describe("invite submit URL", () => {
+  it("is unique per token", () => {
+    expect(inviteSubmitPath("abc_12")).toBe("/s/abc_12");
+    expect(inviteSubmitUrl("http://localhost:3008", "abc_12")).toBe(
+      "http://localhost:3008/s/abc_12",
     );
   });
 });
@@ -20,11 +20,11 @@ describe("customerProofMessage", () => {
   it("includes the link, order, amount, and disclaimer", () => {
     const text = customerProofMessage({
       merchantName: "ManoVersa",
-      submitUrl: "http://localhost:3008/submit?merchant=manoversa",
+      submitUrl: "http://localhost:3008/s/abc_12",
       orderReference: "MV-1048",
       amountPkr: "5000",
     });
-    expect(text).toContain("http://localhost:3008/submit?merchant=manoversa");
+    expect(text).toContain("http://localhost:3008/s/abc_12");
     expect(text).toContain("Order MV-1048");
     expect(text).toContain("PKR 5000");
     expect(text).toContain("not confirmation of funds");

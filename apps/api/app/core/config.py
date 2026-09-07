@@ -5,6 +5,14 @@ from functools import lru_cache
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+def _loopback_twin(origin: str) -> str | None:
+    if "://localhost" in origin:
+        return origin.replace("://localhost", "://127.0.0.1", 1)
+    if "://127.0.0.1" in origin:
+        return origin.replace("://127.0.0.1", "://localhost", 1)
+    return None
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
@@ -27,7 +35,13 @@ class Settings(BaseSettings):
 
     @property
     def cors_origin_list(self) -> list[str]:
-        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+        # localhost and 127.0.0.1 are different browser origins; allow both.
+        origins: list[str] = []
+        for origin in (o.strip() for o in self.cors_origins.split(",") if o.strip()):
+            for candidate in (origin, _loopback_twin(origin)):
+                if candidate and candidate not in origins:
+                    origins.append(candidate)
+        return origins
 
 
 @lru_cache

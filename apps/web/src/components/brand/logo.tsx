@@ -19,7 +19,7 @@ export function Logo({ href = "/", className }: { href?: string | null; classNam
           />
         </svg>
       </span>
-      <span className="text-[17px] font-bold tracking-tight text-slate-900">Yaqeen AI</span>
+      <span className="text-[17px] font-bold tracking-tight text-ink">Yaqeen AI</span>
     </span>
   );
 

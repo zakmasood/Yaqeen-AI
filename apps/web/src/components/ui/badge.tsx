@@ -8,9 +8,9 @@ const labels: Record<AnalysisStatus, string> = {
 };
 
 const styles: Record<AnalysisStatus, string> = {
-  READY_FOR_CONFIRMATION: "bg-emerald-50 text-emerald-800 ring-emerald-100",
-  MANUAL_REVIEW: "bg-amber-50 text-amber-800 ring-amber-100",
-  SUSPICIOUS: "bg-red-50 text-red-700 ring-red-100",
+  READY_FOR_CONFIRMATION: "bg-ready-bg text-ready ring-ready/30",
+  MANUAL_REVIEW: "bg-review-bg text-review ring-review/30",
+  SUSPICIOUS: "bg-danger-bg text-danger ring-danger/30",
 };
 
 export function StatusBadge({ status }: { status: AnalysisStatus }) {
@@ -34,10 +34,10 @@ export function Badge({
   tone?: "neutral" | "success" | "warning" | "danger";
 }) {
   const toneClass = {
-    neutral: "bg-slate-100 text-slate-700 ring-slate-200",
-    success: "bg-emerald-50 text-emerald-800 ring-emerald-100",
-    warning: "bg-amber-50 text-amber-800 ring-amber-100",
-    danger: "bg-red-50 text-red-700 ring-red-100",
+    neutral: "bg-lift text-muted ring-line",
+    success: "bg-ready-bg text-ready ring-ready/30",
+    warning: "bg-review-bg text-review ring-review/30",
+    danger: "bg-danger-bg text-danger ring-danger/30",
   }[tone];
 
   return (

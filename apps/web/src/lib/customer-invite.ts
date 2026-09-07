@@ -1,11 +1,11 @@
-/** Merchant → customer WhatsApp text and submit URL. No Meta API. */
+/** Merchant → customer WhatsApp text and per-ask submit URL. No Meta API. */
 
-export function customerSubmitPath(slug: string | undefined): string {
-  return slug ? `/submit?merchant=${encodeURIComponent(slug)}` : "/submit";
+export function inviteSubmitPath(token: string): string {
+  return `/s/${encodeURIComponent(token)}`;
 }
 
-export function customerSubmitUrl(origin: string, slug: string | undefined): string {
-  return `${origin.replace(/\/$/, "")}${customerSubmitPath(slug)}`;
+export function inviteSubmitUrl(origin: string, token: string): string {
+  return `${origin.replace(/\/$/, "")}${inviteSubmitPath(token)}`;
 }
 
 export function customerProofMessage(opts: {

@@ -40,25 +40,25 @@ export default async function AnalysisDetailPage({ params }: Props) {
 
   const banner = {
     [AnalysisStatus.SUSPICIOUS]: {
-      wrap: "border-red-200 bg-red-50",
-      iconWrap: "bg-red-600 text-white",
-      title: "text-red-700",
+      wrap: "border-danger/30 bg-danger-bg",
+      iconWrap: "bg-danger text-white",
+      title: "text-danger",
       Icon: IconAlert,
       action: "danger" as const,
       outline: "dangerOutline" as const,
     },
     [AnalysisStatus.MANUAL_REVIEW]: {
-      wrap: "border-amber-200 bg-amber-50",
-      iconWrap: "bg-amber-500 text-white",
-      title: "text-amber-800",
+      wrap: "border-review/30 bg-review-bg",
+      iconWrap: "bg-review text-canvas",
+      title: "text-review",
       Icon: IconClock,
       action: "primary" as const,
       outline: "outline" as const,
     },
     [AnalysisStatus.READY_FOR_CONFIRMATION]: {
-      wrap: "border-emerald-200 bg-emerald-50",
-      iconWrap: "bg-emerald-600 text-white",
-      title: "text-emerald-800",
+      wrap: "border-ready/30 bg-ready-bg",
+      iconWrap: "bg-ready text-canvas",
+      title: "text-ready",
       Icon: IconCheck,
       action: "primary" as const,
       outline: "outline" as const,
@@ -69,15 +69,13 @@ export default async function AnalysisDetailPage({ params }: Props) {
 
   return (
     <div className="px-6 py-8 lg:px-10">
-      <p className="text-sm text-slate-400">
-        <Link href="/analyses" className="hover:text-yaqeen-700">
-          Analyses
+      <p className="text-sm text-muted">
+        <Link href="/analyses" className="hover:text-yaqeen-500">
+          Inbox
         </Link>
         <span> / {row.orderReference ?? row.id}</span>
       </p>
-      <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
-        Payment proof analysis
-      </h1>
+      <h1 className="mt-2 text-3xl font-bold tracking-tight text-ink">Payment proof analysis</h1>
 
       <section
         className={`mt-5 flex flex-col gap-4 rounded-xl border px-5 py-4 sm:flex-row sm:items-center ${banner.wrap}`}
@@ -96,7 +94,7 @@ export default async function AnalysisDetailPage({ params }: Props) {
                   ? "Needs review"
                   : "Suspicious"}
             </p>
-            <p className="text-sm text-slate-700">{statusNote(row.status)}</p>
+            <p className="text-sm text-ink">{statusNote(row.status)}</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -106,23 +104,23 @@ export default async function AnalysisDetailPage({ params }: Props) {
             alreadyReviewed={Boolean(row.reviewedAt)}
           />
           <Button href="/analyses" variant={banner.outline}>
-            Back to analyses
+            Back to inbox
           </Button>
         </div>
       </section>
 
       <div className="mt-5 grid gap-5 lg:grid-cols-2">
-        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-card">
-          <h2 className="mb-4 text-base font-semibold text-slate-900">Submitted proof</h2>
+        <section className="rounded-xl border border-line bg-surface p-5 shadow-card">
+          <h2 className="mb-4 text-base font-semibold text-ink">Submitted proof</h2>
           {row.screenshotUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={row.screenshotUrl}
               alt="Submitted payment proof"
-              className="max-h-[420px] w-full rounded-lg border border-slate-100 object-contain bg-slate-50"
+              className="max-h-[420px] w-full rounded-lg border border-line bg-lift object-contain"
             />
           ) : (
-            <div className="flex h-48 flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 text-slate-500">
+            <div className="flex h-48 flex-col items-center justify-center rounded-lg border border-dashed border-line bg-lift text-muted">
               <IconImage className="h-8 w-8" />
               <p className="mt-2 text-sm">No screenshot preview</p>
             </div>
@@ -137,18 +135,18 @@ export default async function AnalysisDetailPage({ params }: Props) {
         </section>
 
         <div className="space-y-5">
-          <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-card">
-            <h2 className="mb-3 text-base font-semibold text-slate-900">Risk signals</h2>
+          <section className="rounded-xl border border-line bg-surface p-5 shadow-card">
+            <h2 className="mb-3 text-base font-semibold text-ink">Risk signals</h2>
             {row.signals.length === 0 ? (
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-muted">
                 No blocking signals. Merchant confirmation is still required.
               </p>
             ) : (
-              <ul className="divide-y divide-slate-100">
+              <ul className="divide-y divide-line">
                 {row.signals.map((signal) => (
                   <li key={signal.code} className="py-3">
-                    <p className="text-sm font-medium text-slate-800">{signal.message}</p>
-                    <p className="mt-0.5 font-mono text-xs text-slate-500">
+                    <p className="text-sm font-medium text-ink">{signal.message}</p>
+                    <p className="mt-0.5 font-mono text-xs text-muted">
                       {signal.code} · {signal.severity}
                     </p>
                   </li>
@@ -157,8 +155,8 @@ export default async function AnalysisDetailPage({ params }: Props) {
             )}
           </section>
 
-          <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-card">
-            <h2 className="mb-3 text-base font-semibold text-slate-900">Extracted details</h2>
+          <section className="rounded-xl border border-line bg-surface p-5 shadow-card">
+            <h2 className="mb-3 text-base font-semibold text-ink">Extracted details</h2>
             <dl className="space-y-2 text-sm">
               <Row label="Provider" value={providerLabel(row.provider)} />
               <Row
@@ -196,10 +194,8 @@ export default async function AnalysisDetailPage({ params }: Props) {
 function Row({ label, value, emphasize }: { label: string; value: string; emphasize?: boolean }) {
   return (
     <div className="flex justify-between gap-4">
-      <dt className="text-slate-500">{label}</dt>
-      <dd className={emphasize ? "font-semibold text-red-600" : "font-medium text-slate-800"}>
-        {value}
-      </dd>
+      <dt className="text-muted">{label}</dt>
+      <dd className={emphasize ? "font-semibold text-danger" : "font-medium text-ink"}>{value}</dd>
     </div>
   );
 }

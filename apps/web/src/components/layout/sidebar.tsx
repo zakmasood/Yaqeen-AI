@@ -12,12 +12,13 @@ import {
   IconSettings,
   IconShield,
 } from "@/components/icons";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
 const nav = [
   { href: "/", label: "Overview", icon: IconHome },
-  { href: "/upload", label: "New analysis", icon: IconNewAnalysis },
-  { href: "/analyses", label: "Analyses", icon: IconList },
+  { href: "/upload", label: "Upload", icon: IconNewAnalysis },
+  { href: "/analyses", label: "Inbox", icon: IconList },
   { href: "/settings", label: "Settings", icon: IconSettings },
 ];
 
@@ -33,7 +34,7 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="flex h-full w-[232px] shrink-0 flex-col border-r border-slate-200 bg-white">
+    <aside className="flex h-full w-[232px] shrink-0 flex-col border-r border-line bg-surface">
       <div className="px-5 py-5">
         <Logo />
       </div>
@@ -50,9 +51,7 @@ export function Sidebar() {
               href={item.href}
               className={clsx(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition",
-                active
-                  ? "bg-yaqeen-50 text-yaqeen-800"
-                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
+                active ? "bg-lift text-yaqeen-500" : "text-muted hover:bg-lift hover:text-ink",
               )}
             >
               <Icon className="h-5 w-5" />
@@ -61,17 +60,20 @@ export function Sidebar() {
           );
         })}
       </nav>
+      <div className="px-3 pb-2">
+        <ThemeToggle />
+      </div>
       <div className="px-3 pb-3">
         <button
           type="button"
           onClick={logout}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted hover:bg-lift hover:text-ink"
         >
           <IconLogout className="h-5 w-5" />
           Sign out
         </button>
       </div>
-      <div className="flex items-start gap-2 px-5 pb-5 text-xs leading-snug text-slate-400">
+      <div className="flex items-start gap-2 px-5 pb-5 text-xs leading-snug text-muted">
         <IconShield className="mt-0.5 h-4 w-4 shrink-0" />
         Always confirm receipt independently
       </div>

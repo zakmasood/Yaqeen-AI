@@ -9,11 +9,11 @@ export function TextField({ label, id, className, ...props }: InputProps) {
   const fieldId = id ?? props.name;
   return (
     <label className="block">
-      <span className="mb-1.5 block text-sm font-medium text-slate-700">{label}</span>
+      <span className="mb-1.5 block text-sm font-medium text-muted">{label}</span>
       <input
         id={fieldId}
         className={clsx(
-          "w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-yaqeen-600 focus:ring-2 focus:ring-yaqeen-100",
+          "w-full rounded-lg border border-line bg-lift px-3 py-2.5 text-sm text-ink outline-none transition placeholder:text-muted focus:border-yaqeen-600 focus:ring-2 focus:ring-yaqeen-700/30",
           className,
         )}
         {...props}
@@ -31,11 +31,11 @@ export function SelectField({ label, id, options, className, ...props }: SelectP
   const fieldId = id ?? props.name;
   return (
     <label className="block">
-      <span className="mb-1.5 block text-sm font-medium text-slate-700">{label}</span>
+      <span className="mb-1.5 block text-sm font-medium text-muted">{label}</span>
       <select
         id={fieldId}
         className={clsx(
-          "w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-yaqeen-600 focus:ring-2 focus:ring-yaqeen-100",
+          "w-full rounded-lg border border-line bg-lift px-3 py-2.5 text-sm text-ink outline-none transition focus:border-yaqeen-600 focus:ring-2 focus:ring-yaqeen-700/30",
           className,
         )}
         {...props}

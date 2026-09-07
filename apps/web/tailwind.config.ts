@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  darkMode: "class",
   content: ["./src/**/*.{js,ts,jsx,tsx,mdx}"],
   theme: {
     extend: {
@@ -15,13 +16,24 @@ const config: Config = {
           800: "#065f46",
           900: "#043f2e",
         },
-        canvas: "#f5f7f6",
+        canvas: "var(--canvas)",
+        surface: "var(--surface)",
+        lift: "var(--lift)",
+        ink: "var(--ink)",
+        muted: "var(--muted)",
+        line: "var(--line)",
+        ready: "var(--ready)",
+        "ready-bg": "var(--ready-bg)",
+        review: "var(--review)",
+        "review-bg": "var(--review-bg)",
+        danger: "var(--danger)",
+        "danger-bg": "var(--danger-bg)",
       },
       fontFamily: {
         sans: ["var(--font-inter)", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       boxShadow: {
-        card: "0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.04)",
+        card: "0 1px 2px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.08)",
       },
     },
   },

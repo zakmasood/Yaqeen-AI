@@ -46,9 +46,7 @@ export function ProviderMark({
       >
         {initials[provider]}
       </span>
-      {showLabel ? (
-        <span className="text-sm font-medium text-slate-800">{labels[provider]}</span>
-      ) : null}
+      {showLabel ? <span className="text-sm font-medium text-ink">{labels[provider]}</span> : null}
     </span>
   );
 }

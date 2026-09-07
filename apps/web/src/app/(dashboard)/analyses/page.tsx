@@ -17,15 +17,12 @@ export default async function AnalysesPage() {
 
   return (
     <div className="px-6 py-8 lg:px-10">
-      <h1 className="mb-2 text-3xl font-bold tracking-tight text-slate-900">Analyses</h1>
-      <p className="mb-6 text-sm text-slate-500">
-        Screening statuses are operational — not fund confirmation.
-      </p>
+      <h1 className="mb-6 text-3xl font-bold tracking-tight text-ink">Inbox</h1>
       {error ? (
         <QueryMessage title="Analyses unavailable">{error}</QueryMessage>
       ) : rows.length === 0 ? (
         <QueryMessage title="No analyses yet">
-          Upload a payment proof from New analysis, or ask a customer to use the submit link.
+          Upload a payment proof, or ask a customer to use the submit link.
         </QueryMessage>
       ) : (
         <AnalysisTable rows={rows} />

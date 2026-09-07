@@ -53,3 +53,6 @@ supabase/.temp/
 # Misc
 *.pem
 .turbo/
+
+# Local pitch captures (may include real payment screenshots)
+docs/pitch-screenshots/

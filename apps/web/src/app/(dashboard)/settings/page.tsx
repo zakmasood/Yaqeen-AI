@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SelectField, TextField } from "@/components/ui/field";
 import { CustomerInviteCard } from "@/components/customer-invite";
-import { getApiUrl, fetchMe, fetchMerchantAccounts, createMerchantAccount } from "@/lib/api";
+import { fetchMe, fetchMerchantAccounts, createMerchantAccount } from "@/lib/api";
 import type { MerchantAccount, MerchantMe } from "@/lib/api";
 import { PaymentProvider } from "@yaqeen/shared";
 import { providerLabel } from "@/components/ui/provider-mark";
@@ -52,33 +52,12 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-8 lg:px-10">
-      <h1 className="text-3xl font-bold tracking-tight text-slate-900">Settings</h1>
-      <p className="mt-1 text-sm text-slate-500">
-        Merchant configuration. Secrets stay in environment variables — never in the browser.
-      </p>
+      <h1 className="text-3xl font-bold tracking-tight text-ink">Settings</h1>
+      <p className="mt-1 text-sm text-muted">{me ? me.name : "Merchant configuration"}</p>
 
-      {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="mt-4 text-sm text-danger">{error}</p> : null}
 
       <div className="mt-6 space-y-4">
-        <Card title="API">
-          <dl className="space-y-2 text-sm">
-            <div className="flex justify-between gap-4">
-              <dt className="text-slate-500">Backend URL</dt>
-              <dd className="font-mono text-slate-800">{getApiUrl()}</dd>
-            </div>
-            <div className="flex justify-between gap-4">
-              <dt className="text-slate-500">Supabase client</dt>
-              <dd className="text-slate-800">Anon key only</dd>
-            </div>
-            <div className="flex justify-between gap-4">
-              <dt className="text-slate-500">Merchant</dt>
-              <dd className="text-slate-800">
-                {me ? `${me.name} (${me.slug || "no slug"})` : "—"}
-              </dd>
-            </div>
-          </dl>
-        </Card>
-
         {me?.slug ? (
           <CustomerInviteCard
             merchantName={me.name}
@@ -91,13 +70,13 @@ export default function SettingsPage() {
         <Card title="Receiving accounts">
           <div className="space-y-3">
             {accounts.length === 0 ? (
-              <p className="text-sm text-slate-500">No receiving accounts yet.</p>
+              <p className="text-sm text-muted">No receiving accounts yet.</p>
             ) : (
-              <ul className="divide-y divide-slate-100 text-sm">
+              <ul className="divide-y divide-line text-sm">
                 {accounts.map((account) => (
                   <li key={account.id} className="flex justify-between gap-3 py-2">
-                    <span className="font-medium text-slate-800">{account.account_label}</span>
-                    <span className="text-slate-500">
+                    <span className="font-medium text-ink">{account.account_label}</span>
+                    <span className="text-muted">
                       {providerLabel(account.provider)} · {account.account_identifier}
                     </span>
                   </li>
@@ -138,13 +117,9 @@ export default function SettingsPage() {
           </div>
         </Card>
 
-        <Card title="Inbound WhatsApp">
-          <p className="text-sm text-slate-600">
-            Customers can also send a screenshot to your business number later. That still needs{" "}
-            <code className="rounded bg-slate-100 px-1">WHATSAPP_*</code> on the API. The invite
-            above works without it.
-          </p>
-        </Card>
+        <p className="text-sm text-muted">
+          Customers can also send a screenshot to your business number later.
+        </p>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-"""Public customer proof submission — scoped by merchant slug, no dashboard auth."""
+"""Public customer proof submission — slug fallback or per-ask invite token."""
 
 from __future__ import annotations
 
@@ -6,11 +6,56 @@ from typing import Annotated
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
 
-from app.schemas import AnalysisResult
+from app.schemas import AnalysisResult, PublicInviteResponse
 from app.services.analyses import find_or_create_order, get_merchant_by_slug
+from app.services.invites import get_invite_by_token, mark_invite_used, public_invite
 from app.services.pipeline import AnalysisPipeline
 
 router = APIRouter(prefix="/public", tags=["public"])
+
+
+@router.get("/invites/{token}", response_model=PublicInviteResponse)
+def get_public_invite(token: str) -> PublicInviteResponse:
+    return public_invite(token)
+
+
+@router.post(
+    "/invites/{token}/submissions",
+    response_model=AnalysisResult,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_invite_submission(
+    token: str,
+    file: Annotated[UploadFile, File()],
+    name: Annotated[str | None, Form()] = None,
+    phone: Annotated[str | None, Form()] = None,
+) -> AnalysisResult:
+    row = get_invite_by_token(token)
+    order = row.get("orders") or {}
+    merchant_id = str(row["merchant_id"])
+    order_id = str(row["order_id"])
+    order_reference = str(order.get("order_reference") or "")
+    amount = order.get("expected_amount")
+    expected_amount = float(amount) if amount is not None else None
+    submitter_phone = (phone.strip() if phone and phone.strip() else None) or row.get(
+        "invited_phone"
+    )
+    image_bytes = await file.read()
+    result = await AnalysisPipeline().run(
+        merchant_id=merchant_id,
+        source="upload",
+        image_bytes=image_bytes,
+        filename=file.filename,
+        content_type=file.content_type,
+        order_id=order_id,
+        order_reference=order_reference,
+        expected_provider=None,
+        expected_amount=expected_amount,
+        submitter_name=name.strip() if name else None,
+        submitter_phone=submitter_phone,
+    )
+    mark_invite_used(str(row["id"]))
+    return result
 
 
 @router.post("/submissions", response_model=AnalysisResult, status_code=status.HTTP_201_CREATED)

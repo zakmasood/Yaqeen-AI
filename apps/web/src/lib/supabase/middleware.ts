@@ -3,7 +3,9 @@ import { NextResponse, type NextRequest } from "next/server";
 import { supabasePublicEnv } from "./env";
 
 function isPublicPath(pathname: string): boolean {
-  return pathname.startsWith("/login") || pathname.startsWith("/submit");
+  return (
+    pathname.startsWith("/login") || pathname.startsWith("/submit") || pathname.startsWith("/s/")
+  );
 }
 
 export async function updateSession(request: NextRequest): Promise<NextResponse> {

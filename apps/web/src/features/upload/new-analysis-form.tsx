@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { SelectField, TextField } from "@/components/ui/field";
-import { InfoBanner } from "@/components/ui/info-banner";
 import { FileDropzone } from "@/components/upload/file-dropzone";
 import { CustomerInviteCard } from "@/components/customer-invite";
 import { createAnalysis, fetchMe } from "@/lib/api";
@@ -50,13 +49,24 @@ export function NewAnalysisForm() {
 
   return (
     <div>
+      {me?.slug ? (
+        <div className="mb-5">
+          <CustomerInviteCard
+            merchantName={me.name}
+            merchantSlug={me.slug}
+            orderReference={order}
+            amountPkr={amount}
+          />
+        </div>
+      ) : null}
+
       <div className="grid gap-5 lg:grid-cols-2">
-        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-card">
+        <section className="rounded-xl border border-line bg-surface p-5 shadow-card">
           <FileDropzone variant="merchant" onFileSelected={setFile} />
         </section>
 
-        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-card">
-          <h2 className="mb-4 text-base font-semibold text-slate-900">Expected payment</h2>
+        <section className="rounded-xl border border-line bg-surface p-5 shadow-card">
+          <h2 className="mb-4 text-base font-semibold text-ink">Expected payment</h2>
           <div className="space-y-4">
             <TextField
               label="Expected amount (PKR)"
@@ -90,24 +100,7 @@ export function NewAnalysisForm() {
         </section>
       </div>
 
-      {me?.slug ? (
-        <div className="mt-5">
-          <CustomerInviteCard
-            merchantName={me.name}
-            merchantSlug={me.slug}
-            orderReference={order}
-            amountPkr={amount}
-            showOrderFields={false}
-          />
-        </div>
-      ) : null}
-
-      <InfoBanner tone="success" className="mt-5">
-        Expected details let Yaqeen compare the screenshot against what your business should
-        receive. Always confirm receipt independently.
-      </InfoBanner>
-
-      {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="mt-3 text-sm text-danger">{error}</p> : null}
 
       <Button className="mt-5 w-full py-3 text-base" onClick={onSubmit} disabled={pending || !file}>
         {pending ? "Analysing…" : "Analyse proof"}

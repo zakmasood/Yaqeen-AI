@@ -13,9 +13,9 @@ export function AnalysisTable({
   showOrder?: boolean;
 }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-card">
+    <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-card">
       <table className="w-full text-left text-sm">
-        <thead className="border-b border-slate-100 text-xs font-medium uppercase tracking-wide text-slate-400">
+        <thead className="border-b border-line text-xs font-medium uppercase tracking-wide text-muted">
           <tr>
             {showOrder ? <th className="px-4 py-3">Order</th> : null}
             <th className="px-4 py-3">Provider</th>
@@ -30,10 +30,10 @@ export function AnalysisTable({
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+            <tr key={row.id} className="border-b border-line last:border-0 hover:bg-lift">
               {showOrder ? (
-                <td className="px-4 py-3 font-medium text-slate-800">
-                  <Link href={`/analyses/${row.id}`} className="hover:text-yaqeen-700">
+                <td className="px-4 py-3 font-medium text-ink">
+                  <Link href={`/analyses/${row.id}`} className="hover:text-yaqeen-500">
                     {row.orderReference ?? "—"}
                   </Link>
                 </td>
@@ -43,19 +43,19 @@ export function AnalysisTable({
                   <ProviderMark provider={row.provider} />
                 </Link>
               </td>
-              <td className="hidden px-4 py-3 font-mono text-xs text-slate-600 md:table-cell">
+              <td className="hidden px-4 py-3 font-mono text-xs text-muted md:table-cell">
                 {row.extracted?.transactionId ?? "—"}
               </td>
-              <td className="px-4 py-3 font-medium text-slate-800">
+              <td className="px-4 py-3 font-medium text-ink">
                 {row.extracted?.amount != null ? formatPkr(row.extracted.amount) : "—"}
               </td>
-              <td className="hidden px-4 py-3 text-slate-500 lg:table-cell">
+              <td className="hidden px-4 py-3 text-muted lg:table-cell">
                 {formatAgo(row.createdAt)}
               </td>
               <td className="px-4 py-3">
                 <StatusBadge status={row.status} />
               </td>
-              <td className="px-2 py-3 text-slate-300">
+              <td className="px-2 py-3 text-muted">
                 <Link
                   href={`/analyses/${row.id}`}
                   aria-label={`Open ${row.orderReference ?? row.id}`}

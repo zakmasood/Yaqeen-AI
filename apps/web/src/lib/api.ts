@@ -136,6 +136,64 @@ export async function createMerchantAccount(
   return res.json() as Promise<MerchantAccount>;
 }
 
+export async function createInvite(
+  body: {
+    order_reference: string;
+    expected_amount: number;
+    invited_phone?: string;
+  },
+  token?: string | null,
+): Promise<{
+  token: string;
+  path: string;
+  order_reference: string;
+  expected_amount: number;
+  invited_phone: string | null;
+  expires_at: string;
+  merchant_name: string;
+}> {
+  const res = await apiFetch(
+    "/api/v1/invites",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+    token,
+  );
+  return res.json();
+}
+
+export type PublicInvite = {
+  merchant_name: string;
+  merchant_slug: string;
+  order_reference: string;
+  expected_amount: number;
+  invited_phone: string | null;
+  expires_at: string;
+};
+
+export async function fetchPublicInvite(token: string): Promise<PublicInvite> {
+  const res = await fetch(`${API_URL}/api/v1/public/invites/${encodeURIComponent(token)}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new ApiError(res.status, await parseError(res));
+  }
+  return res.json() as Promise<PublicInvite>;
+}
+
+export async function submitInviteProof(token: string, form: FormData): Promise<AnalysisResult> {
+  const res = await fetch(
+    `${API_URL}/api/v1/public/invites/${encodeURIComponent(token)}/submissions`,
+    { method: "POST", body: form },
+  );
+  if (!res.ok) {
+    throw new ApiError(res.status, await parseError(res));
+  }
+  return mapAnalysis((await res.json()) as ApiAnalysis);
+}
+
 export async function submitPublicProof(form: FormData): Promise<AnalysisResult> {
   const res = await fetch(`${API_URL}/api/v1/public/submissions`, {
     method: "POST",

@@ -20,14 +20,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         <div className="fixed inset-0 z-50 lg:hidden">
           <button
             type="button"
-            className="absolute inset-0 bg-slate-900/30"
+            className="absolute inset-0 bg-ink/40"
             aria-label="Close menu"
             onClick={() => setOpen(false)}
           />
-          <div className="relative h-full w-[232px] bg-white shadow-xl">
+          <div className="relative h-full w-[232px] bg-surface shadow-xl">
             <button
               type="button"
-              className="absolute right-3 top-4 rounded-md p-1 text-slate-500"
+              className="absolute right-3 top-4 rounded-md p-1 text-muted"
               onClick={() => setOpen(false)}
               aria-label="Close menu"
             >
@@ -39,11 +39,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       ) : null}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 lg:hidden">
+        <header className="flex items-center justify-between border-b border-line bg-surface px-4 py-3 lg:hidden">
           <Logo />
           <button
             type="button"
-            className="rounded-md p-1 text-slate-700"
+            className="rounded-md p-1 text-ink"
             onClick={() => setOpen(true)}
             aria-label="Open menu"
           >

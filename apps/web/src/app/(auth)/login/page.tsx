@@ -37,17 +37,14 @@ export default function LoginPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900">Merchant sign in</h1>
-      <p className="mt-1 text-sm text-slate-500">
-        Screening dashboard — never a confirmation that funds were received.
-      </p>
+      <h1 className="text-2xl font-bold tracking-tight text-ink">Merchant sign in</h1>
 
       {!configured ? (
         <InfoBanner className="mt-5">
           Supabase is not configured. Add{" "}
-          <code className="rounded bg-white/80 px-1">NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
-          <code className="rounded bg-white/80 px-1">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> then link
-          your user in <code className="rounded bg-white/80 px-1">merchant_users</code>.
+          <code className="rounded bg-lift px-1">NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
+          <code className="rounded bg-lift px-1">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> then link your
+          user in <code className="rounded bg-lift px-1">merchant_users</code>.
         </InfoBanner>
       ) : null}
 
@@ -70,7 +67,7 @@ export default function LoginPage() {
           value={password}
           onChange={(event) => setPassword(event.target.value)}
         />
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+        {error ? <p className="text-sm text-danger">{error}</p> : null}
         <Button className="w-full py-3" type="submit" disabled={pending || !configured}>
           {pending ? "Signing in…" : "Sign in"}
         </Button>

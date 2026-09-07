@@ -11,9 +11,9 @@ export function InfoBanner({
   className?: string;
 }) {
   const tones = {
-    warning: "border-amber-100 bg-amber-50 text-amber-900",
-    success: "border-yaqeen-100 bg-yaqeen-50 text-yaqeen-900",
-    neutral: "border-slate-200 bg-slate-50 text-slate-700",
+    warning: "border-review/30 bg-review-bg text-review",
+    success: "border-yaqeen-700/40 bg-ready-bg text-ready",
+    neutral: "border-line bg-lift text-muted",
   };
 
   return (

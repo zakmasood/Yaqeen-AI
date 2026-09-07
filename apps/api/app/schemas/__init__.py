@@ -120,6 +120,31 @@ class MerchantAccountListResponse(BaseModel):
     items: list[MerchantAccountResponse] = Field(default_factory=list)
 
 
+class InviteCreateRequest(BaseModel):
+    order_reference: str
+    expected_amount: float
+    invited_phone: str | None = None
+
+
+class InviteCreateResponse(BaseModel):
+    token: str
+    path: str
+    order_reference: str
+    expected_amount: float
+    invited_phone: str | None = None
+    expires_at: datetime
+    merchant_name: str
+
+
+class PublicInviteResponse(BaseModel):
+    merchant_name: str
+    merchant_slug: str
+    order_reference: str
+    expected_amount: float
+    invited_phone: str | None = None
+    expires_at: datetime
+
+
 class WhatsAppWebhookChallenge(BaseModel):
     """Meta webhook verification query params (GET)."""
 
