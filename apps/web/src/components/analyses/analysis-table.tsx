@@ -13,8 +13,8 @@ export function AnalysisTable({
   showOrder?: boolean;
 }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-card">
-      <table className="w-full text-left text-sm">
+    <div className="overflow-x-auto rounded-xl border border-line bg-surface shadow-card">
+      <table className="w-full min-w-[36rem] text-left text-sm">
         <thead className="border-b border-line text-xs font-medium uppercase tracking-wide text-muted">
           <tr>
             {showOrder ? <th className="px-4 py-3">Order</th> : null}
@@ -32,8 +32,8 @@ export function AnalysisTable({
           {rows.map((row) => (
             <tr key={row.id} className="border-b border-line last:border-0 hover:bg-lift">
               {showOrder ? (
-                <td className="px-4 py-3 font-medium text-ink">
-                  <Link href={`/analyses/${row.id}`} className="hover:text-yaqeen-500">
+                <td className="max-w-[12rem] px-4 py-3 font-medium text-ink">
+                  <Link href={`/analyses/${row.id}`} className="block truncate hover:text-yaqeen-500">
                     {row.orderReference ?? "—"}
                   </Link>
                 </td>
@@ -43,8 +43,8 @@ export function AnalysisTable({
                   <ProviderMark provider={row.provider} />
                 </Link>
               </td>
-              <td className="hidden px-4 py-3 font-mono text-xs text-muted md:table-cell">
-                {row.extracted?.transactionId ?? "—"}
+              <td className="hidden max-w-[10rem] px-4 py-3 font-mono text-xs text-muted md:table-cell">
+                <span className="block truncate">{row.extracted?.transactionId ?? "—"}</span>
               </td>
               <td className="px-4 py-3 font-medium text-ink">
                 {row.extracted?.amount != null ? formatPkr(row.extracted.amount) : "—"}
@@ -54,6 +54,9 @@ export function AnalysisTable({
               </td>
               <td className="px-4 py-3">
                 <StatusBadge status={row.status} />
+                {row.signals.some((signal) => signal.code === "NETWORK_REFERENCE_REUSED") ? (
+                  <p className="mt-1 text-xs text-review">Seen at another merchant</p>
+                ) : null}
               </td>
               <td className="px-2 py-3 text-muted">
                 <Link

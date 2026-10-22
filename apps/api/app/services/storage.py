@@ -4,15 +4,19 @@ from __future__ import annotations
 
 import re
 import uuid
+from io import BytesIO
 
 from fastapi import HTTPException, status
+from PIL import Image
 
 from app.core.config import get_settings
 from app.core.supabase import require_supabase
 
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+MAX_IMAGE_PIXELS = 20_000_000
 ALLOWED_CONTENT_TYPES = frozenset({"image/png", "image/jpeg", "image/webp"})
 _UNSAFE_NAME = re.compile(r"[^A-Za-z0-9._-]+")
+_FORMAT_FOR_TYPE = {"image/png": "PNG", "image/jpeg": "JPEG", "image/webp": "WEBP"}
 
 
 def normalize_content_type(content_type: str | None) -> str:
@@ -39,6 +43,51 @@ def resolve_content_type(content_type: str | None, filename: str | None) -> str:
     if name.endswith(".jpg") or name.endswith(".jpeg"):
         return "image/jpeg"
     return normalize_content_type(content_type)
+
+
+def sniffed_image_type(data: bytes) -> str:
+    """Return a supported image MIME type, or raise if the bytes are not one."""
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        sniffed = "image/png"
+    elif data.startswith(b"\xff\xd8\xff"):
+        sniffed = "image/jpeg"
+    elif len(data) >= 12 and data.startswith(b"RIFF") and data[8:12] == b"WEBP":
+        sniffed = "image/webp"
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="Only PNG, JPEG, or WEBP screenshots are accepted",
+        )
+    try:
+        with Image.open(BytesIO(data)) as image:
+            image.verify()
+        with Image.open(BytesIO(data)) as image:
+            image.load()
+            if image.width * image.height > MAX_IMAGE_PIXELS:
+                raise HTTPException(
+                    status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                    detail="Screenshot dimensions are too large",
+                )
+            fmt = (image.format or "").upper()
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="Screenshot could not be decoded",
+        ) from exc
+    if fmt != _FORMAT_FOR_TYPE[sniffed]:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="Screenshot content does not match its image type",
+        )
+    return sniffed
+
+
+def validate_image_upload(data: bytes) -> str:
+    """Size, magic bytes, and a successful decode. Returns the sniffed MIME type."""
+    validate_upload_size(len(data))
+    return sniffed_image_type(data)
 
 
 def validate_upload_size(size: int) -> None:
@@ -68,8 +117,7 @@ class StorageService:
         data: bytes,
         content_type: str,
     ) -> str:
-        validate_upload_size(len(data))
-        content_type = normalize_content_type(content_type)
+        content_type = validate_image_upload(data)
         safe_name = _UNSAFE_NAME.sub("_", filename or "proof")[:80] or "proof"
         object_path = f"{merchant_id}/{uuid.uuid4().hex}_{safe_name}"
         client = require_supabase()

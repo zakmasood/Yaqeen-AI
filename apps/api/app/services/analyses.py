@@ -9,7 +9,13 @@ from fastapi import HTTPException, status
 
 from app.core.supabase import require_supabase
 from app.models.enums import PAYMENT_SCREENING_DISCLAIMER, AnalysisStatus, PaymentProvider
-from app.schemas import AnalysisResult, ExtractedTransaction, RiskSignal
+from app.schemas import (
+    ATTESTATION_DECISIONS,
+    AnalysisResult,
+    ExtractedTransaction,
+    MerchantAttestation,
+    RiskSignal,
+)
 from app.services.storage import StorageService
 
 
@@ -49,7 +55,7 @@ def _extracted_from_row(row: dict | None) -> ExtractedTransaction | None:
     return ExtractedTransaction(
         provider=_as_provider(row.get("provider")),
         amount=float(row["amount"]) if row.get("amount") is not None else None,
-        currency=str(row.get("currency") or "PKR"),
+        currency=str(row.get("currency") or ""),
         transaction_id=row.get("transaction_id"),
         occurred_at=parse_dt(occurred) if occurred else None,
         payer_hint=row.get("payer_hint"),
@@ -58,22 +64,44 @@ def _extracted_from_row(row: dict | None) -> ExtractedTransaction | None:
     )
 
 
-def _signals_from_rows(rows: Any) -> list[RiskSignal]:
+_NETWORK_CHECK_CODES = {
+    "NETWORK_CHECK_CLEAR": "CHECKED_NO_MATCH",
+    "NETWORK_CHECK_SKIPPED": "SKIPPED",
+    "NETWORK_CHECK_UNAVAILABLE": "UNAVAILABLE",
+}
+
+
+def _signals_from_rows(rows: Any) -> tuple[list[RiskSignal], str | None]:
+    """Risk signals, plus the cross-merchant check outcome if one was stored.
+
+    Availability rows stay out of the risk list. A match stays in the list.
+    """
     if not isinstance(rows, list):
-        return []
+        return [], None
     signals: list[RiskSignal] = []
+    network_check: str | None = None
     for row in rows:
         try:
+            code = str(row.get("code") or "")
+            if code == "NETWORK_REFERENCE_REUSED":
+                network_check = "CHECKED_MATCH"
+            elif code in _NETWORK_CHECK_CODES:
+                if network_check != "CHECKED_MATCH":
+                    network_check = _NETWORK_CHECK_CODES[code]
+                continue
             signals.append(
                 RiskSignal(
-                    code=str(row.get("code") or ""),
+                    code=code,
                     severity=row.get("severity") or "INFO",
                     message=str(row.get("message") or ""),
+                    related_analysis_id=(
+                        str(row["related_analysis_id"]) if row.get("related_analysis_id") else None
+                    ),
                 )
             )
         except (ValueError, TypeError):
             continue
-    return signals
+    return signals, network_check
 
 
 def assemble_analysis(row: dict, *, signed_url: str | None = None) -> AnalysisResult:
@@ -82,6 +110,8 @@ def assemble_analysis(row: dict, *, signed_url: str | None = None) -> AnalysisRe
     extracted_row = _first(row.get("extracted_transactions"))
     order_reference = row.get("order_reference") or (order or {}).get("order_reference")
     expected_amount = (order or {}).get("expected_amount")
+    raw_expected_provider = (order or {}).get("expected_provider")
+    signals, network_check = _signals_from_rows(row.get("risk_signals"))
     file_name = None
     if screenshot:
         file_name = screenshot.get("original_filename") or screenshot.get("storage_path")
@@ -94,12 +124,15 @@ def assemble_analysis(row: dict, *, signed_url: str | None = None) -> AnalysisRe
         status=_as_status(row.get("status")),
         provider=_as_provider(row.get("provider")),
         extracted=_extracted_from_row(extracted_row),
-        signals=_signals_from_rows(row.get("risk_signals")),
+        signals=signals,
+        network_check=network_check,
         disclaimer=str(row.get("disclaimer") or PAYMENT_SCREENING_DISCLAIMER),
         created_at=parse_dt(row["created_at"]),
         updated_at=parse_dt(row["updated_at"]),
         source=str(row.get("source") or "upload"),
         expected_amount=float(expected_amount) if expected_amount is not None else None,
+        expected_currency=str(order["currency"]) if order and order.get("currency") else None,
+        expected_provider=_as_provider(raw_expected_provider) if raw_expected_provider else None,
         screenshot_url=signed_url,
         file_name=str(file_name) if file_name else None,
         reviewed_at=parse_dt(row["reviewed_at"]) if row.get("reviewed_at") else None,
@@ -109,7 +142,8 @@ def assemble_analysis(row: dict, *, signed_url: str | None = None) -> AnalysisRe
 
 
 _SELECT = (
-    "*, orders(order_reference, expected_amount), "
+    "*, orders(order_reference, expected_amount, currency, expected_provider, "
+    "expected_account_id), "
     "extracted_transactions(*), risk_signals(*), screenshots(*)"
 )
 
@@ -146,7 +180,7 @@ def get_analysis(merchant_id: str, analysis_id: str) -> AnalysisResult:
     rows = result.data or []
     if not rows:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Analysis not found")
-    return _sign_row(rows[0])
+    return _attach_investigation(_sign_row(rows[0]), merchant_id)
 
 
 def get_analysis_by_id(analysis_id: str) -> AnalysisResult:
@@ -155,7 +189,116 @@ def get_analysis_by_id(analysis_id: str) -> AnalysisResult:
     rows = result.data or []
     if not rows:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Analysis not found")
-    return _sign_row(rows[0])
+    row = rows[0]
+    return _attach_investigation(_sign_row(row), str(row["merchant_id"]))
+
+
+def _missing_relation(exc: Exception) -> bool:
+    text = str(exc).lower()
+    return (
+        "does not exist" in text
+        or "schema cache" in text
+        or "pgrst205" in text
+        or "pgrst200" in text
+    )
+
+
+def _latest_attestation(analysis_id: str) -> MerchantAttestation | None:
+    client = require_supabase()
+    try:
+        result = (
+            client.table("merchant_attestations")
+            .select("decision, note, auth_user_id, created_at")
+            .eq("analysis_id", analysis_id)
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+    except Exception as exc:
+        if _missing_relation(exc):
+            return None
+        raise
+    rows = result.data or []
+    if not rows:
+        return None
+    row = rows[0]
+    if not row.get("decision") or not row.get("auth_user_id") or not row.get("created_at"):
+        return None
+    return MerchantAttestation(
+        decision=str(row["decision"]),
+        note=row.get("note"),
+        auth_user_id=str(row["auth_user_id"]),
+        created_at=parse_dt(row["created_at"]),
+    )
+
+
+def _attach_investigation(result: AnalysisResult, merchant_id: str) -> AnalysisResult:
+    expectation = get_screening_expectation(
+        merchant_id,
+        result.order_id,
+        result.expected_amount,
+        result.expected_provider,
+        None,
+    )
+    return result.model_copy(
+        update={
+            "expected_amount": expectation.amount
+            if expectation.amount is not None
+            else result.expected_amount,
+            "expected_currency": expectation.currency or result.expected_currency,
+            "expected_provider": expectation.provider or result.expected_provider,
+            "expected_payee": expectation.payee,
+            "attestation": _latest_attestation(result.id),
+        }
+    )
+
+
+def record_attestation(
+    merchant_id: str,
+    analysis_id: str,
+    auth_user_id: str,
+    decision: str,
+    note: str | None,
+) -> AnalysisResult:
+    """Store a merchant attestation. Screening status is left unchanged."""
+    if decision not in ATTESTATION_DECISIONS:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Unknown confirmation decision",
+        )
+    client = require_supabase()
+    existing = (
+        client.table("analyses")
+        .select("id")
+        .eq("merchant_id", merchant_id)
+        .eq("id", analysis_id)
+        .limit(1)
+        .execute()
+    )
+    if not existing.data:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Analysis not found")
+    note_text = note.strip() if note and note.strip() else None
+    try:
+        client.table("merchant_attestations").insert(
+            {
+                "analysis_id": analysis_id,
+                "merchant_id": merchant_id,
+                "decision": decision,
+                "note": note_text,
+                "auth_user_id": auth_user_id,
+            }
+        ).execute()
+    except Exception as exc:
+        if _missing_relation(exc):
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=(
+                    "Merchant confirmation is unavailable until the latest "
+                    "database migration is applied"
+                ),
+            ) from exc
+        raise
+    return get_analysis(merchant_id, analysis_id)
 
 
 def mark_reviewed(merchant_id: str, analysis_id: str) -> AnalysisResult:
@@ -282,22 +425,39 @@ def _account_identifier(
     return None
 
 
+class ScreeningExpectation:
+    """Trusted order fields. None means the merchant did not set that expectation."""
+
+    def __init__(
+        self,
+        amount: float | None,
+        currency: str | None,
+        provider: PaymentProvider | None,
+        payee: str | None,
+    ) -> None:
+        self.amount = amount
+        self.currency = currency
+        self.provider = provider
+        self.payee = payee
+
+
 def get_screening_expectation(
     merchant_id: str,
     order_id: str | None,
     fallback_amount: float | None,
     fallback_provider: PaymentProvider | None,
     fallback_account_id: str | None = None,
-) -> tuple[float | None, PaymentProvider | None, str | None]:
-    """Resolve expected amount, provider, and payee identifier for matching."""
+) -> ScreeningExpectation:
+    """Resolve expected amount, currency, provider, and payee for matching."""
     amount = fallback_amount
+    currency: str | None = None
     provider = fallback_provider
     account_id = fallback_account_id
     if order_id:
         client = require_supabase()
         found = (
             client.table("orders")
-            .select("expected_amount, expected_provider, expected_account_id")
+            .select("expected_amount, currency, expected_provider, expected_account_id")
             .eq("id", order_id)
             .eq("merchant_id", merchant_id)
             .limit(1)
@@ -307,6 +467,8 @@ def get_screening_expectation(
             row = found.data[0]
             if row.get("expected_amount") is not None:
                 amount = float(row["expected_amount"])
+            if row.get("currency"):
+                currency = str(row["currency"])
             if row.get("expected_provider"):
                 provider = _as_provider(row.get("expected_provider"))
             if row.get("expected_account_id"):
@@ -316,4 +478,4 @@ def get_screening_expectation(
         merchant_id,
         provider.value if provider else None,
     )
-    return amount, provider, payee
+    return ScreeningExpectation(amount, currency, provider, payee)

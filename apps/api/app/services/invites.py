@@ -135,8 +135,50 @@ def public_invite(token: str) -> PublicInviteResponse:
     )
 
 
-def mark_invite_used(invite_id: str) -> None:
+def claim_invite_for_submission(token: str) -> dict:
+    """Atomically consume an open invite.
+
+    The update matches `used_at is null` and `expires_at > now`, so a second
+    concurrent request updates zero rows and does not run screening.
+    """
+    row = get_invite_by_token(token)
+    if row.get("used_at"):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This invite has already been used",
+        )
+    now = datetime.now(UTC).isoformat()
     client = require_supabase()
-    client.table("proof_invites").update({"used_at": datetime.now(UTC).isoformat()}).eq(
-        "id", invite_id
+    updated = (
+        client.table("proof_invites")
+        .update({"used_at": now})
+        .eq("id", str(row["id"]))
+        .is_("used_at", "null")
+        .gt("expires_at", now)
+        .execute()
+    )
+    if not (updated.data or []):
+        fresh = get_invite_by_token(token)
+        if _expired(fresh.get("expires_at")):
+            raise HTTPException(
+                status_code=status.HTTP_410_GONE,
+                detail="This invite has expired. Ask the merchant for a new link.",
+            )
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This invite has already been used",
+        )
+    return row
+
+
+def attach_invite_analysis(invite_id: str, analysis_id: str) -> None:
+    client = require_supabase()
+    client.table("proof_invites").update({"analysis_id": analysis_id}).eq("id", invite_id).execute()
+
+
+def release_invite_claim(invite_id: str) -> None:
+    """Return an invite that never produced an analysis, so a failed submit can retry."""
+    client = require_supabase()
+    client.table("proof_invites").update({"used_at": None}).eq("id", invite_id).is_(
+        "analysis_id", "null"
     ).execute()

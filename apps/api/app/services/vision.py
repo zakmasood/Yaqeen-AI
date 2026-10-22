@@ -13,6 +13,7 @@ import httpx
 from app.core.config import get_settings
 from app.models.enums import PaymentProvider
 from app.schemas import ExtractedTransaction
+from app.services.storage import ALLOWED_CONTENT_TYPES
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +104,7 @@ def extracted_from_vision(payload: dict) -> tuple[ExtractedTransaction | None, b
     extracted = ExtractedTransaction(
         provider=_parse_provider(payload.get("provider")),
         amount=_parse_amount(payload.get("amount")),
-        currency=_parse_optional_str(payload.get("currency")) or "PKR",
+        currency=_parse_optional_str(payload.get("currency")) or "",
         transaction_id=_parse_optional_str(payload.get("transaction_id")),
         occurred_at=_parse_occurred_at(payload.get("occurred_at")),
         payer_hint=_parse_optional_str(payload.get("payer_hint")),
@@ -125,11 +126,11 @@ def extracted_from_vision(payload: dict) -> tuple[ExtractedTransaction | None, b
 class VisionAnalysisService:
     """OpenAI-compatible image JSON extraction. Empty dict when the API key is unset."""
 
-    async def analyze_image(self, image_bytes: bytes) -> dict:
+    async def analyze_image(self, image_bytes: bytes, content_type: str = "image/jpeg") -> dict:
         settings = get_settings()
         if not settings.ai_vision_api_key or not image_bytes:
             return {}
-        mime = "image/jpeg"
+        mime = content_type if content_type in ALLOWED_CONTENT_TYPES else "image/jpeg"
         b64 = base64.standard_b64encode(image_bytes).decode("ascii")
         model = settings.ai_vision_model.strip() or DEFAULT_MODEL
         payload = {

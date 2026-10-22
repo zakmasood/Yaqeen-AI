@@ -126,7 +126,10 @@ export default async function OverviewPage() {
                           <span className="text-sm text-muted">{formatAgo(row.createdAt)}</span>
                         </div>
                         <p className="mt-1 truncate text-sm text-muted">
-                          {row.signals[0]?.message ?? statusNote(row.status)}
+                          {row.signals.find((signal) => signal.code === "NETWORK_REFERENCE_REUSED")
+                            ?.message ??
+                            row.signals[0]?.message ??
+                            statusNote(row.status)}
                         </p>
                       </div>
                       <IconChevronRight className="h-4 w-4 shrink-0 text-muted" />

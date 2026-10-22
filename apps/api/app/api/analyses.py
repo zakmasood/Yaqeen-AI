@@ -8,8 +8,14 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
 
 from app.core.auth import MerchantAuth
 from app.models.enums import PaymentProvider
-from app.schemas import AnalysisListResponse, AnalysisResult
-from app.services.analyses import find_or_create_order, get_analysis, list_analyses, mark_reviewed
+from app.schemas import AnalysisListResponse, AnalysisResult, AttestationCreateRequest
+from app.services.analyses import (
+    find_or_create_order,
+    get_analysis,
+    list_analyses,
+    mark_reviewed,
+    record_attestation,
+)
 from app.services.pipeline import AnalysisPipeline
 
 router = APIRouter(prefix="/analyses", tags=["analyses"])
@@ -41,6 +47,21 @@ def get_merchant_analysis(analysis_id: str, merchant: MerchantAuth) -> AnalysisR
 @router.patch("/{analysis_id}/review", response_model=AnalysisResult)
 def review_analysis(analysis_id: str, merchant: MerchantAuth) -> AnalysisResult:
     return mark_reviewed(merchant.merchant_id, analysis_id)
+
+
+@router.post("/{analysis_id}/attestation", response_model=AnalysisResult)
+def attest_analysis(
+    analysis_id: str,
+    body: AttestationCreateRequest,
+    merchant: MerchantAuth,
+) -> AnalysisResult:
+    return record_attestation(
+        merchant.merchant_id,
+        analysis_id,
+        merchant.auth_user_id,
+        body.decision,
+        body.note,
+    )
 
 
 @router.post("", response_model=AnalysisResult, status_code=status.HTTP_201_CREATED)

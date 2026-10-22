@@ -43,7 +43,11 @@ export function SubmitWizard({
         if (row.invited_phone) setPhone(row.invited_phone);
       })
       .catch((err: unknown) => {
-        setLoadError(err instanceof ApiError ? err.message : "This invite link is not valid.");
+        setLoadError(
+          err instanceof ApiError
+            ? err.message
+            : "Could not reach Yaqeen. Check the connection and try again.",
+        );
       });
   }, [token]);
 

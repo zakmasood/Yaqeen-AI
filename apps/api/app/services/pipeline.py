@@ -12,9 +12,12 @@ from app.schemas import AnalysisResult
 from app.services.analyses import get_analysis_by_id, get_screening_expectation
 from app.services.duplicate_detection import DuplicateDetectionService
 from app.services.image_hash import difference_hash
+from app.services.network_claims import observe_network
 from app.services.ocr import OcrService
 from app.services.screening import collect_screening_outcome, extraction_is_empty
-from app.services.storage import StorageService, resolve_content_type, validate_upload_size
+from app.services.storage import StorageService, validate_image_upload
+from app.services.transaction_claims import ClaimResult, claim_owner_analysis_id, register_claim
+from app.services.txn_ref import normalize_transaction_reference
 from app.services.vision import VisionAnalysisService, extracted_from_vision
 
 logger = logging.getLogger(__name__)
@@ -54,6 +57,10 @@ class AnalysisPipeline:
         submitter_name: str | None = None,
         submitter_phone: str | None = None,
     ) -> AnalysisResult:
+        image_type: str | None = None
+        if image_bytes is not None:
+            image_type = validate_image_upload(image_bytes)
+
         client = require_supabase()
         provider = expected_provider or PaymentProvider.UNKNOWN
         inserted = (
@@ -81,11 +88,9 @@ class AnalysisPipeline:
         stored_bytes = b""
         sha256_hex: str | None = None
         phash: str | None = None
-        if image_bytes:
-            validate_upload_size(len(image_bytes))
-            normalized_type = resolve_content_type(content_type, filename)
+        if image_bytes and image_type:
             path = self.storage.store_screenshot(
-                merchant_id, filename or "proof", image_bytes, normalized_type
+                merchant_id, filename or "proof", image_bytes, image_type
             )
             sha256_hex = hashlib.sha256(image_bytes).hexdigest()
             phash = difference_hash(image_bytes)
@@ -94,7 +99,7 @@ class AnalysisPipeline:
                     "analysis_id": analysis_id,
                     "merchant_id": merchant_id,
                     "storage_path": path,
-                    "content_type": normalized_type,
+                    "content_type": image_type,
                     "byte_size": len(image_bytes),
                     "sha256": sha256_hex,
                     "phash": phash,
@@ -104,19 +109,43 @@ class AnalysisPipeline:
             stored_bytes = image_bytes
 
         _ = await self.ocr.extract_text(stored_bytes)
-        vision_result = await self.vision.analyze_image(stored_bytes)
+        vision_result = await self.vision.analyze_image(
+            stored_bytes,
+            image_type or "image/jpeg",
+        )
         extracted, ambiguous = extracted_from_vision(vision_result)
 
-        expected_amount, expected_provider, expected_payee = get_screening_expectation(
+        expectation = get_screening_expectation(
             merchant_id,
             order_id,
             expected_amount,
             expected_provider,
             expected_account_id,
         )
+        expected_amount = expectation.amount
+        expected_currency = expectation.currency
+        expected_provider = expectation.provider
+        expected_payee = expectation.payee
 
+        normalized_ref = normalize_transaction_reference(
+            extracted.transaction_id if extracted else None
+        )
+        claim_provider = extracted.provider if extracted else provider
+        claim = register_claim(
+            merchant_id=merchant_id,
+            provider=claim_provider,
+            normalized_reference=normalized_ref,
+            analysis_id=analysis_id,
+        )
         duplicate_ids: list[str] = []
-        if extracted and extracted.transaction_id:
+        if claim == ClaimResult.DUPLICATE:
+            prior_id = claim_owner_analysis_id(
+                merchant_id=merchant_id,
+                provider=claim_provider,
+                normalized_reference=normalized_ref,
+            )
+            duplicate_ids = [prior_id or "claim"]
+        elif extracted and extracted.transaction_id:
             duplicate_ids = await self.duplicates.find_duplicates(
                 extracted.transaction_id,
                 merchant_id,
@@ -133,16 +162,24 @@ class AnalysisPipeline:
                 exclude_analysis_id=analysis_id,
             )
 
+        network_check = observe_network(
+            merchant_id=merchant_id,
+            provider=claim_provider,
+            normalized_reference=normalized_ref,
+            analysis_id=analysis_id,
+        )
         status, signals = collect_screening_outcome(
             extracted=extracted,
             vision_result=vision_result,
             duplicate_ids=duplicate_ids,
             expected_amount=expected_amount,
+            expected_currency=expected_currency,
             expected_provider=expected_provider,
             expected_payee=expected_payee,
             ambiguous=ambiguous,
             exact_image_ids=exact_image_ids,
             near_image_ids=near_image_ids,
+            network_check=network_check,
         )
 
         now = datetime.now(UTC).isoformat()
@@ -154,7 +191,7 @@ class AnalysisPipeline:
                     "analysis_id": analysis_id,
                     "provider": extracted.provider.value,
                     "amount": extracted.amount,
-                    "currency": extracted.currency,
+                    "currency": extracted.currency or None,
                     "transaction_id": extracted.transaction_id,
                     "occurred_at": extracted.occurred_at.isoformat()
                     if extracted.occurred_at
@@ -173,6 +210,11 @@ class AnalysisPipeline:
                         "code": signal.code,
                         "severity": signal.severity.value,
                         "message": signal.message,
+                        **(
+                            {"related_analysis_id": signal.related_analysis_id}
+                            if signal.related_analysis_id
+                            else {}
+                        ),
                     }
                     for signal in signals
                 ]

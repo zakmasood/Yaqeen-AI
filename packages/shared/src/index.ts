@@ -9,4 +9,10 @@ export {
   PAYMENT_SCREENING_DISCLAIMER,
 } from "./enums";
 
-export type { ExtractedTransaction, RiskSignal, AnalysisResult, PaymentExpectation } from "./types";
+export type {
+  ExtractedTransaction,
+  RiskSignal,
+  AnalysisResult,
+  PaymentExpectation,
+  MerchantAttestation,
+} from "./types";

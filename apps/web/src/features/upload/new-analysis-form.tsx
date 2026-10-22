@@ -19,11 +19,15 @@ export function NewAnalysisForm() {
   const [order, setOrder] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadingMerchant, setLoadingMerchant] = useState(true);
 
   useEffect(() => {
     fetchMe()
       .then(setMe)
-      .catch(() => undefined);
+      .catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : "Could not load merchant");
+      })
+      .finally(() => setLoadingMerchant(false));
   }, []);
 
   async function onSubmit() {
@@ -49,6 +53,7 @@ export function NewAnalysisForm() {
 
   return (
     <div>
+      {loadingMerchant ? <p className="mb-4 text-sm text-muted">Loading merchant…</p> : null}
       {me?.slug ? (
         <div className="mb-5">
           <CustomerInviteCard

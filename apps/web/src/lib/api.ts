@@ -97,6 +97,23 @@ export async function createAnalysis(
   return mapAnalysis((await res.json()) as ApiAnalysis);
 }
 
+export async function recordAttestation(
+  id: string,
+  body: { decision: string; note?: string },
+  token?: string | null,
+): Promise<AnalysisResult> {
+  const res = await apiFetch(
+    `/api/v1/analyses/${id}/attestation`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+    token,
+  );
+  return mapAnalysis((await res.json()) as ApiAnalysis);
+}
+
 export async function markAnalysisReviewed(
   id: string,
   token?: string | null,
@@ -183,7 +200,23 @@ export async function fetchPublicInvite(token: string): Promise<PublicInvite> {
   return res.json() as Promise<PublicInvite>;
 }
 
-export async function submitInviteProof(token: string, form: FormData): Promise<AnalysisResult> {
+export type PublicSubmissionAck = {
+  id: string;
+  received: boolean;
+};
+
+function publicAck(body: unknown): PublicSubmissionAck {
+  const row = body as { id?: unknown };
+  if (!row || typeof row.id !== "string") {
+    throw new ApiError(502, "Submission was not acknowledged");
+  }
+  return { id: row.id, received: true };
+}
+
+export async function submitInviteProof(
+  token: string,
+  form: FormData,
+): Promise<PublicSubmissionAck> {
   const res = await fetch(
     `${API_URL}/api/v1/public/invites/${encodeURIComponent(token)}/submissions`,
     { method: "POST", body: form },
@@ -191,10 +224,10 @@ export async function submitInviteProof(token: string, form: FormData): Promise<
   if (!res.ok) {
     throw new ApiError(res.status, await parseError(res));
   }
-  return mapAnalysis((await res.json()) as ApiAnalysis);
+  return publicAck(await res.json());
 }
 
-export async function submitPublicProof(form: FormData): Promise<AnalysisResult> {
+export async function submitPublicProof(form: FormData): Promise<PublicSubmissionAck> {
   const res = await fetch(`${API_URL}/api/v1/public/submissions`, {
     method: "POST",
     body: form,
@@ -202,5 +235,5 @@ export async function submitPublicProof(form: FormData): Promise<AnalysisResult>
   if (!res.ok) {
     throw new ApiError(res.status, await parseError(res));
   }
-  return mapAnalysis((await res.json()) as ApiAnalysis);
+  return publicAck(await res.json());
 }

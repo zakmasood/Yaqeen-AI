@@ -22,7 +22,7 @@ const nav = [
   { href: "/settings", label: "Settings", icon: IconSettings },
 ];
 
-export function Sidebar() {
+export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -49,6 +49,7 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onNavigate}
               className={clsx(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition",
                 active ? "bg-lift text-yaqeen-500" : "text-muted hover:bg-lift hover:text-ink",
@@ -66,7 +67,10 @@ export function Sidebar() {
       <div className="px-3 pb-3">
         <button
           type="button"
-          onClick={logout}
+          onClick={() => {
+            onNavigate?.();
+            void logout();
+          }}
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted hover:bg-lift hover:text-ink"
         >
           <IconLogout className="h-5 w-5" />

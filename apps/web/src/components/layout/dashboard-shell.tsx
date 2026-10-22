@@ -33,7 +33,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             >
               <IconClose className="h-5 w-5" />
             </button>
-            <Sidebar />
+            <Sidebar onNavigate={() => setOpen(false)} />
           </div>
         </div>
       ) : null}

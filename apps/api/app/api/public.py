@@ -6,9 +6,14 @@ from typing import Annotated
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
 
-from app.schemas import AnalysisResult, PublicInviteResponse
+from app.schemas import PublicInviteResponse, PublicSubmissionAck
 from app.services.analyses import find_or_create_order, get_merchant_by_slug
-from app.services.invites import get_invite_by_token, mark_invite_used, public_invite
+from app.services.invites import (
+    attach_invite_analysis,
+    claim_invite_for_submission,
+    public_invite,
+    release_invite_claim,
+)
 from app.services.pipeline import AnalysisPipeline
 
 router = APIRouter(prefix="/public", tags=["public"])
@@ -21,7 +26,7 @@ def get_public_invite(token: str) -> PublicInviteResponse:
 
 @router.post(
     "/invites/{token}/submissions",
-    response_model=AnalysisResult,
+    response_model=PublicSubmissionAck,
     status_code=status.HTTP_201_CREATED,
 )
 async def create_invite_submission(
@@ -29,8 +34,8 @@ async def create_invite_submission(
     file: Annotated[UploadFile, File()],
     name: Annotated[str | None, Form()] = None,
     phone: Annotated[str | None, Form()] = None,
-) -> AnalysisResult:
-    row = get_invite_by_token(token)
+) -> PublicSubmissionAck:
+    row = claim_invite_for_submission(token)
     order = row.get("orders") or {}
     merchant_id = str(row["merchant_id"])
     order_id = str(row["order_id"])
@@ -41,31 +46,39 @@ async def create_invite_submission(
         "invited_phone"
     )
     image_bytes = await file.read()
-    result = await AnalysisPipeline().run(
-        merchant_id=merchant_id,
-        source="upload",
-        image_bytes=image_bytes,
-        filename=file.filename,
-        content_type=file.content_type,
-        order_id=order_id,
-        order_reference=order_reference,
-        expected_provider=None,
-        expected_amount=expected_amount,
-        submitter_name=name.strip() if name else None,
-        submitter_phone=submitter_phone,
-    )
-    mark_invite_used(str(row["id"]))
-    return result
+    try:
+        result = await AnalysisPipeline().run(
+            merchant_id=merchant_id,
+            source="upload",
+            image_bytes=image_bytes,
+            filename=file.filename,
+            content_type=file.content_type,
+            order_id=order_id,
+            order_reference=order_reference,
+            expected_provider=None,
+            expected_amount=expected_amount,
+            submitter_name=name.strip() if name else None,
+            submitter_phone=submitter_phone,
+        )
+    except Exception:
+        release_invite_claim(str(row["id"]))
+        raise
+    attach_invite_analysis(str(row["id"]), result.id)
+    return PublicSubmissionAck(id=result.id)
 
 
-@router.post("/submissions", response_model=AnalysisResult, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/submissions",
+    response_model=PublicSubmissionAck,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_public_submission(
     file: Annotated[UploadFile, File()],
     merchant_slug: Annotated[str, Form()],
     order_reference: Annotated[str, Form()],
     name: Annotated[str | None, Form()] = None,
     phone: Annotated[str | None, Form()] = None,
-) -> AnalysisResult:
+) -> PublicSubmissionAck:
     slug = merchant_slug.strip()
     reference = order_reference.strip()
     if not slug or not reference:
@@ -82,7 +95,7 @@ async def create_public_submission(
         expected_account_id=None,
     )
     image_bytes = await file.read()
-    return await AnalysisPipeline().run(
+    result = await AnalysisPipeline().run(
         merchant_id=str(merchant["id"]),
         source="upload",
         image_bytes=image_bytes,
@@ -95,3 +108,4 @@ async def create_public_submission(
         submitter_name=name.strip() if name else None,
         submitter_phone=phone.strip() if phone else None,
     )
+    return PublicSubmissionAck(id=result.id)

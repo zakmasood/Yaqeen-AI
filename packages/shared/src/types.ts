@@ -12,11 +12,20 @@ export interface ExtractedTransaction {
   rawTextSnippet: string | null;
 }
 
-/** A discrete risk indicator — not a authenticity percentage. */
+/** A discrete risk indicator — not an authenticity percentage. */
 export interface RiskSignal {
   code: string;
   severity: RiskSeverity;
   message: string;
+  /** Earlier analysis for this same merchant. Never another merchant's analysis. */
+  relatedAnalysisId?: string | null;
+}
+
+/** Merchant attestation. Distinct from the screening status. Not provider confirmation. */
+export interface MerchantAttestation {
+  decision: string;
+  note: string | null;
+  recordedAt: string;
 }
 
 /**
@@ -31,11 +40,17 @@ export interface AnalysisResult {
   provider: PaymentProvider;
   extracted: ExtractedTransaction | null;
   signals: RiskSignal[];
+  /** Cross-merchant lookup outcome. Null on analyses saved before this check existed. */
+  networkCheck: string | null;
   disclaimer: string;
   createdAt: string;
   updatedAt: string;
   source: string;
   expectedAmount: number | null;
+  expectedCurrency: string | null;
+  expectedProvider: PaymentProvider | null;
+  expectedPayee: string | null;
+  attestation: MerchantAttestation | null;
   screenshotUrl: string | null;
   fileName: string | null;
   reviewedAt: string | null;

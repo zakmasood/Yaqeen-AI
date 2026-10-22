@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     whatsapp_access_token: str = ""
     whatsapp_phone_number_id: str = ""
 
+    # HMAC key for cross-merchant reference fingerprints. Never send this to the browser.
+    network_claim_key: str = ""
+
     @property
     def cors_origin_list(self) -> list[str]:
         # localhost and 127.0.0.1 are different browser origins; allow both.

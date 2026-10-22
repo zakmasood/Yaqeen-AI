@@ -34,6 +34,29 @@ class RiskSignal(BaseModel):
     code: str
     severity: RiskSeverity
     message: str
+    related_analysis_id: str | None = None
+
+
+class MerchantAttestation(BaseModel):
+    """Merchant decision after screening. Not a provider settlement confirmation."""
+
+    decision: str
+    note: str | None = None
+    auth_user_id: str
+    created_at: datetime
+
+
+class AttestationCreateRequest(BaseModel):
+    decision: str
+    note: str | None = Field(default=None, max_length=500)
+
+
+ATTESTATION_DECISIONS = (
+    "PENDING_CONFIRMATION",
+    "OBSERVED_IN_RECORDS",
+    "NOT_FOUND",
+    "HELD",
+)
 
 
 class AnalysisResult(BaseModel):
@@ -44,11 +67,16 @@ class AnalysisResult(BaseModel):
     provider: PaymentProvider
     extracted: ExtractedTransaction | None = None
     signals: list[RiskSignal] = Field(default_factory=list)
+    network_check: str | None = None
     disclaimer: str = PAYMENT_SCREENING_DISCLAIMER
     created_at: datetime
     updated_at: datetime
     source: str = "upload"
     expected_amount: float | None = None
+    expected_currency: str | None = None
+    expected_provider: PaymentProvider | None = None
+    expected_payee: str | None = None
+    attestation: MerchantAttestation | None = None
     screenshot_url: str | None = None
     file_name: str | None = None
     reviewed_at: datetime | None = None
@@ -134,6 +162,13 @@ class InviteCreateResponse(BaseModel):
     invited_phone: str | None = None
     expires_at: datetime
     merchant_name: str
+
+
+class PublicSubmissionAck(BaseModel):
+    """Customer-facing receipt. No signals, extractions, or file URLs."""
+
+    id: str
+    received: bool = True
 
 
 class PublicInviteResponse(BaseModel):

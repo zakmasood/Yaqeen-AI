@@ -6,6 +6,7 @@ import logging
 from collections.abc import Iterator
 
 import httpx
+from fastapi import HTTPException
 
 from app.core.config import get_settings
 from app.core.supabase import get_supabase_client
@@ -100,14 +101,17 @@ class WhatsAppIngestionService:
                 continue
             downloaded = await download_whatsapp_media(media_id)
             image_bytes, content_type, filename = downloaded if downloaded else (None, None, None)
-            await pipeline.run(
-                merchant_id=str(merchant["id"]),
-                source="whatsapp",
-                image_bytes=image_bytes,
-                filename=filename,
-                content_type=content_type,
-                order_id=None,
-                order_reference=None,
-                expected_provider=PaymentProvider.UNKNOWN,
-                submitter_phone=sender,
-            )
+            try:
+                await pipeline.run(
+                    merchant_id=str(merchant["id"]),
+                    source="whatsapp",
+                    image_bytes=image_bytes,
+                    filename=filename,
+                    content_type=content_type,
+                    order_id=None,
+                    order_reference=None,
+                    expected_provider=PaymentProvider.UNKNOWN,
+                    submitter_phone=sender,
+                )
+            except HTTPException:
+                logger.info("WhatsApp image rejected", extra={"media_id": media_id})

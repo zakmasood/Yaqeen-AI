@@ -69,7 +69,11 @@ def test_cors_origin_list_includes_loopback_twin() -> None:
     assert origins == ["http://localhost:3008", "http://127.0.0.1:3008"]
 
 
-def test_whatsapp_challenge_echo_when_token_unset() -> None:
+def test_whatsapp_challenge_rejects_when_token_unset(monkeypatch) -> None:
+    from app.core.config import get_settings
+
+    monkeypatch.setenv("WHATSAPP_VERIFY_TOKEN", "")
+    get_settings.cache_clear()
     response = client.get(
         "/api/v1/webhooks/whatsapp",
         params={
@@ -78,5 +82,74 @@ def test_whatsapp_challenge_echo_when_token_unset() -> None:
             "hub.challenge": "12345",
         },
     )
+    assert response.status_code == 403
+    get_settings.cache_clear()
+
+
+def test_whatsapp_challenge_echoes_when_token_matches(monkeypatch) -> None:
+    from app.core.config import get_settings
+
+    monkeypatch.setenv("WHATSAPP_VERIFY_TOKEN", "dev-token")
+    get_settings.cache_clear()
+    response = client.get(
+        "/api/v1/webhooks/whatsapp",
+        params={
+            "hub.mode": "subscribe",
+            "hub.verify_token": "dev-token",
+            "hub.challenge": "12345",
+        },
+    )
     assert response.status_code == 200
     assert response.text == "12345"
+    get_settings.cache_clear()
+
+
+def test_whatsapp_post_disabled_without_secret(monkeypatch) -> None:
+    from app.core.config import get_settings
+
+    monkeypatch.setenv("WHATSAPP_APP_SECRET", "")
+    get_settings.cache_clear()
+    response = client.post("/api/v1/webhooks/whatsapp", content=b"{}")
+    assert response.status_code == 503
+    get_settings.cache_clear()
+
+
+def test_whatsapp_post_rejects_bad_signature(monkeypatch) -> None:
+    from app.core.config import get_settings
+
+    monkeypatch.setenv("WHATSAPP_APP_SECRET", "app-secret")
+    get_settings.cache_clear()
+    response = client.post(
+        "/api/v1/webhooks/whatsapp",
+        content=b'{"entry":[]}',
+        headers={"X-Hub-Signature-256": "sha256=deadbeef"},
+    )
+    assert response.status_code == 403
+    get_settings.cache_clear()
+
+
+def test_whatsapp_post_accepts_valid_signature(monkeypatch) -> None:
+    import hashlib
+    import hmac
+
+    from app.core.config import get_settings
+
+    monkeypatch.setenv("WHATSAPP_APP_SECRET", "app-secret")
+    get_settings.cache_clear()
+    body = b'{"object":"whatsapp_business_account","entry":[]}'
+    digest = hmac.new(b"app-secret", body, hashlib.sha256).hexdigest()
+
+    async def fake_enqueue(self: object, payload: object) -> None:
+        return None
+
+    monkeypatch.setattr("app.api.whatsapp.WhatsAppIngestionService.enqueue", fake_enqueue)
+    response = client.post(
+        "/api/v1/webhooks/whatsapp",
+        content=body,
+        headers={
+            "Content-Type": "application/json",
+            "X-Hub-Signature-256": f"sha256={digest}",
+        },
+    )
+    assert response.status_code == 200
+    get_settings.cache_clear()

@@ -16,6 +16,13 @@ type ApiSignal = {
   code?: string;
   severity?: string;
   message?: string;
+  related_analysis_id?: string | null;
+};
+
+type ApiAttestation = {
+  decision?: string;
+  note?: string | null;
+  created_at?: string;
 };
 
 export type ApiAnalysis = {
@@ -26,11 +33,16 @@ export type ApiAnalysis = {
   provider?: string;
   extracted?: ApiExtracted | null;
   signals?: ApiSignal[];
+  network_check?: string | null;
   disclaimer?: string;
   created_at: string;
   updated_at: string;
   source?: string;
   expected_amount?: number | null;
+  expected_currency?: string | null;
+  expected_provider?: string | null;
+  expected_payee?: string | null;
+  attestation?: ApiAttestation | null;
   screenshot_url?: string | null;
   file_name?: string | null;
   reviewed_at?: string | null;
@@ -64,7 +76,7 @@ function mapExtracted(row: ApiExtracted | null | undefined): ExtractedTransactio
   return {
     provider: asProvider(row.provider),
     amount: row.amount ?? null,
-    currency: row.currency ?? "PKR",
+    currency: row.currency ?? "",
     transactionId: row.transaction_id ?? null,
     occurredAt: row.occurred_at ?? null,
     payerHint: row.payer_hint ?? null,
@@ -78,7 +90,30 @@ function mapSignals(rows: ApiSignal[] | undefined): RiskSignal[] {
     code: row.code ?? "",
     severity: asSeverity(row.severity),
     message: row.message ?? "",
+    relatedAnalysisId: row.related_analysis_id ?? null,
   }));
+}
+
+export const ATTESTATION_OPTIONS = [
+  { value: "PENDING_CONFIRMATION", label: "Pending independent confirmation" },
+  { value: "OBSERVED_IN_RECORDS", label: "Payment observed in wallet or bank records" },
+  { value: "NOT_FOUND", label: "Payment not found" },
+  { value: "HELD", label: "Held for further investigation" },
+] as const;
+
+export function attestationLabel(decision: string): string {
+  return ATTESTATION_OPTIONS.find((item) => item.value === decision)?.label ?? decision;
+}
+
+export function evidenceKindLabel(code: string): string {
+  if (code === "NETWORK_REFERENCE_REUSED") return "Seen at another merchant";
+  if (code.startsWith("NETWORK_CHECK_")) return "Check availability";
+  if (code.endsWith("_UNAVAILABLE") || code === "SCREENING_UNAVAILABLE") return "Missing evidence";
+  if (code.endsWith("_MISMATCH")) return "Contradictory evidence";
+  if (code === "TXN_REUSED" || code === "EXACT_IMAGE_REUSED" || code === "NEAR_DUPLICATE_IMAGE") {
+    return "Duplicate match";
+  }
+  return "Needs review";
 }
 
 export function mapAnalysis(row: ApiAnalysis): AnalysisResult {
@@ -90,6 +125,7 @@ export function mapAnalysis(row: ApiAnalysis): AnalysisResult {
     provider: asProvider(row.provider),
     extracted: mapExtracted(row.extracted),
     signals: mapSignals(row.signals),
+    networkCheck: row.network_check ?? null,
     disclaimer:
       row.disclaimer ??
       "Payment proof passed screening, but receipt of funds is not independently confirmed.",
@@ -97,6 +133,16 @@ export function mapAnalysis(row: ApiAnalysis): AnalysisResult {
     updatedAt: row.updated_at,
     source: row.source ?? "upload",
     expectedAmount: row.expected_amount ?? null,
+    expectedCurrency: row.expected_currency ?? null,
+    expectedProvider: row.expected_provider ? asProvider(row.expected_provider) : null,
+    expectedPayee: row.expected_payee ?? null,
+    attestation: row.attestation?.decision
+      ? {
+          decision: row.attestation.decision,
+          note: row.attestation.note ?? null,
+          recordedAt: row.attestation.created_at ?? "",
+        }
+      : null,
     screenshotUrl: row.screenshot_url ?? null,
     fileName: row.file_name ?? null,
     reviewedAt: row.reviewed_at ?? null,
