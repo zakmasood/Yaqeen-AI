@@ -32,7 +32,7 @@ export default async function AnalysisDetailPage({ params }: Props) {
 
   if (error || !row) {
     return (
-      <div className="px-6 py-8 lg:px-10">
+      <div className="mx-auto max-w-6xl px-5 py-14">
         <QueryMessage title="Analysis unavailable">{error}</QueryMessage>
       </div>
     );
@@ -70,17 +70,19 @@ export default async function AnalysisDetailPage({ params }: Props) {
   const amountNote = amountComparison(row.expectedAmount, row.extracted?.amount ?? null);
 
   return (
-    <div className="px-6 py-8 lg:px-10">
+    <div className="mx-auto max-w-6xl px-5 py-14">
       <p className="text-sm text-muted">
-        <Link href="/analyses" className="hover:text-yaqeen-500">
+        <Link href="/analyses" className="hover:text-accent">
           Inbox
         </Link>
         <span className="break-all"> / {row.orderReference ?? row.id}</span>
       </p>
-      <h1 className="mt-2 text-3xl font-bold tracking-tight text-ink">Payment proof analysis</h1>
+      <h1 className="mt-3 font-display text-4xl font-semibold leading-[0.95] tracking-tight text-ink sm:text-5xl">
+        Payment proof analysis
+      </h1>
 
       <section
-        className={`mt-5 flex flex-col gap-4 rounded-xl border px-5 py-4 sm:flex-row sm:items-center ${banner.wrap}`}
+        className={`mt-5 flex flex-col gap-4 rounded-2xl border px-5 py-4 sm:flex-row sm:items-center ${banner.wrap}`}
       >
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <span
@@ -89,7 +91,7 @@ export default async function AnalysisDetailPage({ params }: Props) {
             <banner.Icon className="h-5 w-5" />
           </span>
           <div className="min-w-0">
-            <p className={`text-lg font-bold ${banner.title}`}>
+            <p className={`font-display text-2xl font-semibold ${banner.title}`}>
               {row.status === AnalysisStatus.READY_FOR_CONFIRMATION
                 ? "Ready"
                 : row.status === AnalysisStatus.MANUAL_REVIEW
@@ -112,8 +114,8 @@ export default async function AnalysisDetailPage({ params }: Props) {
       </section>
 
       <div className="mt-5 grid gap-5 lg:grid-cols-2">
-        <section className="rounded-xl border border-line bg-surface p-5 shadow-card">
-          <h2 className="mb-4 text-base font-semibold text-ink">Submitted proof</h2>
+        <section className="rounded-2xl border border-line bg-surface p-6">
+          <h2 className="mb-4 font-display text-xl font-semibold tracking-tight text-ink">Submitted proof</h2>
           {row.screenshotUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -129,9 +131,9 @@ export default async function AnalysisDetailPage({ params }: Props) {
           )}
           <dl className="mt-6 space-y-2 text-sm">
             <Row label="Submitted at" value={formatWhen(row.createdAt)} />
-            <Row label="Submitted by" value={submittedBy || "—"} />
+            <Row label="Submitted by" value={submittedBy || "None"} />
             <Row label="Source" value={row.source} />
-            <Row label="File name" value={row.fileName ?? "—"} />
+            <Row label="File name" value={row.fileName ?? "None"} />
             {row.reviewedAt ? <Row label="Reviewed at" value={formatWhen(row.reviewedAt)} /> : null}
           </dl>
         </section>
@@ -139,11 +141,11 @@ export default async function AnalysisDetailPage({ params }: Props) {
         <div className="space-y-5">
           <NetworkCheckNotice check={row.networkCheck} matchMessage={networkSignal?.message ?? null} />
 
-          <section className="rounded-xl border border-line bg-surface p-5 shadow-card">
-            <h2 className="mb-3 text-base font-semibold text-ink">Risk signals</h2>
+          <section className="rounded-2xl border border-line bg-surface p-6">
+            <h2 className="mb-3 font-display text-xl font-semibold tracking-tight text-ink">Risk signals</h2>
             {row.signals.length === 0 ? (
               <p className="text-sm text-muted">
-                No blocking signals. Merchant confirmation is still required.
+                Nothing here blocked the proof. You still confirm the money yourself.
               </p>
             ) : (
               <ul className="divide-y divide-line">
@@ -156,7 +158,7 @@ export default async function AnalysisDetailPage({ params }: Props) {
                     {signal.relatedAnalysisId ? (
                       <Link
                         href={`/analyses/${signal.relatedAnalysisId}`}
-                        className="mt-1 inline-block text-sm text-yaqeen-500 hover:underline"
+                        className="mt-1 inline-block text-sm text-accent hover:underline"
                       >
                         Earlier analysis from this merchant
                       </Link>
@@ -167,8 +169,10 @@ export default async function AnalysisDetailPage({ params }: Props) {
             )}
           </section>
 
-          <section className="rounded-xl border border-line bg-surface p-5 shadow-card">
-            <h2 className="mb-3 text-base font-semibold text-ink">Expected vs extracted</h2>
+          <section className="rounded-2xl border border-line bg-surface p-6">
+            <h2 className="mb-3 font-display text-xl font-semibold tracking-tight text-ink">
+              Expected vs extracted
+            </h2>
             <dl className="space-y-3 text-sm">
               <Compare
                 label="Amount"
@@ -198,15 +202,17 @@ export default async function AnalysisDetailPage({ params }: Props) {
                 label="Transaction reference"
                 expected={null}
                 extracted={row.extracted?.transactionId ?? null}
-                note={row.extracted?.transactionId ? "Read from the proof" : "Missing evidence"}
+                note={row.extracted?.transactionId ? "Read from the screenshot" : "Not on the screenshot"}
               />
-              <Row label="Order" value={row.orderReference ?? "—"} />
+              <Row label="Order" value={row.orderReference ?? "None"} />
             </dl>
           </section>
 
-          <section className="rounded-xl border border-line bg-surface p-5 shadow-card">
-            <h2 className="mb-1 text-base font-semibold text-ink">Merchant confirmation</h2>
-            <p className="mb-3 text-sm text-muted">Separate from the screening result above.</p>
+          <section className="rounded-2xl border border-line bg-surface p-6">
+            <h2 className="mb-1 font-display text-xl font-semibold tracking-tight text-ink">
+              Merchant confirmation
+            </h2>
+            <p className="mb-3 text-sm text-muted">This note does not change the screening result.</p>
             {row.attestation ? (
               <p className="mb-3 break-words text-sm text-ink">
                 {attestationLabel(row.attestation.decision)}
@@ -227,10 +233,10 @@ export default async function AnalysisDetailPage({ params }: Props) {
         {row.status === AnalysisStatus.READY_FOR_CONFIRMATION
           ? `${PAYMENT_SCREENING_DISCLAIMER} `
           : ""}
-        Yaqeen can read amount, currency, provider, recipient, and reference from a screenshot,
-        compare those fields with the order you entered, and notice a repeated reference at your
-        shop or at another Yaqeen merchant. Yaqeen cannot confirm the provider settled the payment,
-        see another merchant&apos;s customer or proof, or decide that a screenshot is genuine.
+        Yaqeen reads the amount, currency, provider, recipient, and reference when it can, compares
+        them with the order, and notices if that reference was used again at your shop or at another
+        Yaqeen merchant. It cannot see whether the provider settled the payment, see another
+        merchant&apos;s customer or screenshot, or tell you the image is genuine.
       </InfoBanner>
     </div>
   );
@@ -245,29 +251,29 @@ function NetworkCheckNotice({
 }) {
   if (check === "CHECKED_MATCH") {
     return (
-      <section className="rounded-xl border border-review/40 bg-review-bg p-5">
-        <h2 className="text-base font-semibold text-ink">Reference seen at another merchant</h2>
+      <section className="rounded-2xl border border-review/40 bg-review-bg p-5">
+        <h2 className="font-display text-xl font-semibold tracking-tight text-ink">Seen at another merchant</h2>
         <p className="mt-2 text-sm text-ink">{matchMessage}</p>
         <p className="mt-2 text-xs text-muted">
-          No other merchant name, customer, phone number, screenshot, or order is shown.
+          You don&apos;t see their name, customer, phone, screenshot, or order.
         </p>
       </section>
     );
   }
   if (check === "UNAVAILABLE") {
     return (
-      <section className="rounded-xl border border-review/40 bg-review-bg p-5">
-        <h2 className="text-base font-semibold text-ink">Cross-merchant check did not finish</h2>
+      <section className="rounded-2xl border border-review/40 bg-review-bg p-5">
+        <h2 className="font-display text-xl font-semibold tracking-tight text-ink">The other-merchant check did not finish</h2>
         <p className="mt-2 text-sm text-ink">
-          A missing warning does not mean this reference is unique. Screening was still saved.
+          No warning here does not mean the reference is unique. The screening result was still saved.
         </p>
       </section>
     );
   }
   if (check === "SKIPPED") {
     return (
-      <section className="rounded-xl border border-line bg-surface p-5 shadow-card">
-        <h2 className="text-base font-semibold text-ink">Cross-merchant check was not run</h2>
+      <section className="rounded-2xl border border-line bg-surface p-6">
+        <h2 className="font-display text-xl font-semibold tracking-tight text-ink">The other-merchant check did not run</h2>
         <p className="mt-2 text-sm text-muted">
           The reference was missing, too short, or the provider could not be identified.
         </p>
@@ -276,19 +282,21 @@ function NetworkCheckNotice({
   }
   if (check === "CHECKED_NO_MATCH") {
     return (
-      <section className="rounded-xl border border-line bg-surface p-5 shadow-card">
-        <h2 className="text-base font-semibold text-ink">No other merchant submitted this reference</h2>
+      <section className="rounded-2xl border border-line bg-surface p-6">
+        <h2 className="font-display text-xl font-semibold tracking-tight text-ink">No other merchant submitted this reference</h2>
         <p className="mt-2 text-sm text-muted">
-          The check finished. This is not confirmation that the payment was received.
+          The check finished. This still doesn&apos;t mean you received the payment.
         </p>
       </section>
     );
   }
   return (
-    <section className="rounded-xl border border-line bg-surface p-5 shadow-card">
-      <h2 className="text-base font-semibold text-ink">Cross-merchant check was not recorded</h2>
+    <section className="rounded-2xl border border-line bg-surface p-6">
+      <h2 className="font-display text-xl font-semibold tracking-tight text-ink">
+        This proof has no record of the other-merchant check
+      </h2>
       <p className="mt-2 text-sm text-muted">
-        This analysis does not say whether another merchant submitted the same reference.
+        It doesn&apos;t say whether another merchant submitted the same reference.
       </p>
     </section>
   );
@@ -314,7 +322,7 @@ function Compare({
   extracted: string | null;
   note: string;
 }) {
-  const contradiction = note === "Does not match";
+  const contradiction = note === "Doesn't match";
   return (
     <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-x-3 gap-y-0.5 sm:grid-cols-[8rem_minmax(0,1fr)_minmax(0,1fr)_auto]">
       <dt className="text-muted">{label}</dt>
@@ -338,22 +346,22 @@ function Compare({
 function textComparison(expected: string | null, extracted: string | null, loose = false): string {
   const left = expected?.trim() ?? "";
   const right = extracted?.trim() ?? "";
-  if (!left && !right) return "Missing evidence";
-  if (!left) return "No expectation set";
-  if (!right) return "Missing evidence";
+  if (!left && !right) return "Not on the screenshot";
+  if (!left) return "You didn't set this";
+  if (!right) return "Not on the screenshot";
   if (loose) {
     const norm = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
     const a = norm(left);
     const b = norm(right);
     if (a && b && (a.includes(b) || b.includes(a))) return "Matches";
-    return "Does not match";
+    return "Doesn't match";
   }
-  return left.toLowerCase() === right.toLowerCase() ? "Matches" : "Does not match";
+  return left.toLowerCase() === right.toLowerCase() ? "Matches" : "Doesn't match";
 }
 
 function amountComparison(expected: number | null, extracted: number | null): string {
-  if (expected == null && extracted == null) return "Missing evidence";
-  if (expected == null) return "No expectation set";
-  if (extracted == null) return "Missing evidence";
-  return Math.abs(expected - extracted) <= 0.5 ? "Matches" : "Does not match";
+  if (expected == null && extracted == null) return "Not on the screenshot";
+  if (expected == null) return "You didn't set this";
+  if (extracted == null) return "Not on the screenshot";
+  return Math.abs(expected - extracted) <= 0.5 ? "Matches" : "Doesn't match";
 }

@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/ui/page-header";
 import { QueryMessage } from "@/components/ui/query-message";
 import { AnalysisTable } from "@/components/analyses/analysis-table";
 import { loadAnalyses } from "@/lib/api-server";
@@ -16,8 +17,12 @@ export default async function AnalysesPage() {
   }
 
   return (
-    <div className="px-6 py-8 lg:px-10">
-      <h1 className="mb-6 text-3xl font-bold tracking-tight text-ink">Inbox</h1>
+    <div className="mx-auto max-w-6xl px-5 py-14">
+      <PageHeader
+        kicker="Queue"
+        title="Inbox"
+        lede="Proofs this shop has screened. Open one when you want to record what you actually received."
+      />
       {error ? (
         <QueryMessage title="Analyses unavailable">{error}</QueryMessage>
       ) : rows.length === 0 ? (

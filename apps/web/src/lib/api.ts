@@ -1,10 +1,16 @@
 /** Thin API client for the FastAPI backend. */
 
+import { readLocalSession } from "@/lib/local-session";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { mapAnalysis, type ApiAnalysis } from "@/lib/analysis-map";
 import type { AnalysisResult, PaymentProvider } from "@yaqeen/shared";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+export function getApiUrl(): string {
+  if (typeof window === "undefined" && process.env.API_URL_INTERNAL) {
+    return process.env.API_URL_INTERNAL;
+  }
+  return process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+}
 
 export class ApiError extends Error {
   constructor(
@@ -16,12 +22,8 @@ export class ApiError extends Error {
   }
 }
 
-export function getApiUrl(): string {
-  return API_URL;
-}
-
 export async function fetchHealth(): Promise<{ status: string }> {
-  const res = await fetch(`${API_URL}/health`, { cache: "no-store" });
+  const res = await fetch(`${getApiUrl()}/health`, { cache: "no-store" });
   if (!res.ok) {
     throw new Error(`Health check failed: ${res.status}`);
   }
@@ -30,7 +32,7 @@ export async function fetchHealth(): Promise<{ status: string }> {
 
 async function browserAccessToken(): Promise<string | null> {
   const supabase = createBrowserSupabaseClient();
-  if (!supabase) return null;
+  if (!supabase) return readLocalSession();
   const { data } = await supabase.auth.getSession();
   return data.session?.access_token ?? null;
 }
@@ -54,7 +56,7 @@ async function apiFetch(
   const headers = new Headers(init.headers);
   const access = token === undefined ? await browserAccessToken() : token;
   if (access) headers.set("Authorization", `Bearer ${access}`);
-  const res = await fetch(`${API_URL}${path}`, { ...init, headers, cache: "no-store" });
+  const res = await fetch(`${getApiUrl()}${path}`, { ...init, headers, cache: "no-store" });
   if (!res.ok) {
     throw new ApiError(res.status, await parseError(res));
   }
@@ -191,7 +193,7 @@ export type PublicInvite = {
 };
 
 export async function fetchPublicInvite(token: string): Promise<PublicInvite> {
-  const res = await fetch(`${API_URL}/api/v1/public/invites/${encodeURIComponent(token)}`, {
+  const res = await fetch(`${getApiUrl()}/api/v1/public/invites/${encodeURIComponent(token)}`, {
     cache: "no-store",
   });
   if (!res.ok) {
@@ -218,7 +220,7 @@ export async function submitInviteProof(
   form: FormData,
 ): Promise<PublicSubmissionAck> {
   const res = await fetch(
-    `${API_URL}/api/v1/public/invites/${encodeURIComponent(token)}/submissions`,
+    `${getApiUrl()}/api/v1/public/invites/${encodeURIComponent(token)}/submissions`,
     { method: "POST", body: form },
   );
   if (!res.ok) {
@@ -228,7 +230,7 @@ export async function submitInviteProof(
 }
 
 export async function submitPublicProof(form: FormData): Promise<PublicSubmissionAck> {
-  const res = await fetch(`${API_URL}/api/v1/public/submissions`, {
+  const res = await fetch(`${getApiUrl()}/api/v1/public/submissions`, {
     method: "POST",
     body: form,
   });

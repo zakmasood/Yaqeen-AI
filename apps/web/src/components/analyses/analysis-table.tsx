@@ -13,9 +13,9 @@ export function AnalysisTable({
   showOrder?: boolean;
 }) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-line bg-surface shadow-card">
+    <div className="overflow-x-auto rounded-2xl border border-line bg-surface">
       <table className="w-full min-w-[36rem] text-left text-sm">
-        <thead className="border-b border-line text-xs font-medium uppercase tracking-wide text-muted">
+        <thead className="border-b border-line text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
           <tr>
             {showOrder ? <th className="px-4 py-3">Order</th> : null}
             <th className="px-4 py-3">Provider</th>
@@ -33,8 +33,8 @@ export function AnalysisTable({
             <tr key={row.id} className="border-b border-line last:border-0 hover:bg-lift">
               {showOrder ? (
                 <td className="max-w-[12rem] px-4 py-3 font-medium text-ink">
-                  <Link href={`/analyses/${row.id}`} className="block truncate hover:text-yaqeen-500">
-                    {row.orderReference ?? "—"}
+                  <Link href={`/analyses/${row.id}`} className="block truncate hover:text-accent">
+                    {row.orderReference ?? "None"}
                   </Link>
                 </td>
               ) : null}
@@ -44,10 +44,10 @@ export function AnalysisTable({
                 </Link>
               </td>
               <td className="hidden max-w-[10rem] px-4 py-3 font-mono text-xs text-muted md:table-cell">
-                <span className="block truncate">{row.extracted?.transactionId ?? "—"}</span>
+                <span className="block truncate">{row.extracted?.transactionId ?? "None"}</span>
               </td>
               <td className="px-4 py-3 font-medium text-ink">
-                {row.extracted?.amount != null ? formatPkr(row.extracted.amount) : "—"}
+                {row.extracted?.amount != null ? formatPkr(row.extracted.amount) : "None"}
               </td>
               <td className="hidden px-4 py-3 text-muted lg:table-cell">
                 {formatAgo(row.createdAt)}

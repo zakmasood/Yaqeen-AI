@@ -7,6 +7,8 @@ from typing import Annotated
 
 from fastapi import Depends, Header, HTTPException, status
 
+from app.core.config import get_settings
+from app.core.local_auth import read_token
 from app.core.supabase import require_supabase
 
 
@@ -41,25 +43,32 @@ def get_current_merchant(
     authorization: Annotated[str | None, Header()] = None,
 ) -> MerchantContext:
     token = _bearer_token(authorization)
+    settings = get_settings()
+    email_hint = None
+    if settings.database_url:
+        user_id = read_token(token, settings.local_auth_secret)
+    else:
+        client = require_supabase()
+        try:
+            user_response = client.auth.get_user(token)
+        except Exception as exc:  # noqa: BLE001 — GoTrue raises several types for bad JWTs
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired session",
+                headers={"WWW-Authenticate": "Bearer"},
+            ) from exc
+
+        user = getattr(user_response, "user", None)
+        user_id = getattr(user, "id", None)
+        email_hint = getattr(user, "email", None)
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired session",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
     client = require_supabase()
-    try:
-        user_response = client.auth.get_user(token)
-    except Exception as exc:  # noqa: BLE001 — GoTrue raises several types for bad JWTs
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired session",
-            headers={"WWW-Authenticate": "Bearer"},
-        ) from exc
-
-    user = getattr(user_response, "user", None)
-    user_id = getattr(user, "id", None)
-    if not user_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired session",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
     result = (
         client.table("merchant_users")
         .select("role, email, merchants(id, name, slug)")
@@ -88,7 +97,7 @@ def get_current_merchant(
         merchant_name=str(merchant.get("name") or ""),
         merchant_slug=str(merchant.get("slug") or ""),
         auth_user_id=str(user_id),
-        email=row.get("email") or getattr(user, "email", None),
+        email=row.get("email") or email_hint,
         role=str(row.get("role") or "member"),
     )
 

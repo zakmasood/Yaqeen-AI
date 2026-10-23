@@ -13,49 +13,49 @@ PKR_EPSILON = 0.5
 SCREENING_UNAVAILABLE = RiskSignal(
     code="SCREENING_UNAVAILABLE",
     severity=RiskSeverity.MEDIUM,
-    message="OCR/vision providers are not configured; human review required.",
+    message="The screenshot reader is not set up. Review this proof yourself.",
 )
 
 TXN_REUSED = RiskSignal(
     code="TXN_REUSED",
     severity=RiskSeverity.HIGH,
-    message="This transaction ID appears on a prior analysis.",
+    message="This transaction ID is already on an earlier proof from your shop.",
 )
 
 EXACT_IMAGE_REUSED = RiskSignal(
     code="EXACT_IMAGE_REUSED",
     severity=RiskSeverity.HIGH,
-    message="This screenshot file was submitted on a prior analysis.",
+    message="This exact screenshot was submitted before.",
 )
 
 NEAR_DUPLICATE_IMAGE = RiskSignal(
     code="NEAR_DUPLICATE_IMAGE",
     severity=RiskSeverity.MEDIUM,
-    message="A near-identical screenshot was submitted earlier. Review it before fulfilment.",
+    message="This looks like a screenshot you already received. Check it before you fulfil the order.",
 )
 
 AMOUNT_MISMATCH = RiskSignal(
     code="AMOUNT_MISMATCH",
     severity=RiskSeverity.HIGH,
-    message="Extracted amount does not match the expected payment.",
+    message="The amount on the screenshot doesn't match the order.",
 )
 
 PROVIDER_MISMATCH = RiskSignal(
     code="PROVIDER_MISMATCH",
     severity=RiskSeverity.MEDIUM,
-    message="Extracted provider does not match the expected provider.",
+    message="The provider on the screenshot doesn't match the one you expected.",
 )
 
 PAYEE_MISMATCH = RiskSignal(
     code="PAYEE_MISMATCH",
     severity=RiskSeverity.MEDIUM,
-    message="Extracted payee does not match the merchant receiving account.",
+    message="The recipient on the screenshot doesn't match your receiving account.",
 )
 
 EXTRACTION_AMBIGUOUS = RiskSignal(
     code="EXTRACTION_AMBIGUOUS",
     severity=RiskSeverity.MEDIUM,
-    message="Extraction is incomplete or low-confidence; human review required.",
+    message="The screenshot is hard to read. Review it yourself.",
 )
 
 AMOUNT_UNAVAILABLE = RiskSignal(
@@ -98,9 +98,9 @@ NETWORK_REFERENCE_REUSED = RiskSignal(
     code="NETWORK_REFERENCE_REUSED",
     severity=RiskSeverity.MEDIUM,
     message=(
-        "This payment reference was also submitted to another Yaqeen merchant. "
-        "That is a risk indicator, not confirmation of fraud, "
-        "and the other merchant is not identified."
+        "This reference was also submitted to another Yaqeen merchant. "
+        "That is a risk indicator, not confirmation of fraud. "
+        "The other merchant is not named."
     ),
 )
 
@@ -108,7 +108,7 @@ NETWORK_CHECK_CLEAR = RiskSignal(
     code="NETWORK_CHECK_CLEAR",
     severity=RiskSeverity.INFO,
     message=(
-        "Cross-merchant check finished. No other Yaqeen merchant has submitted this reference."
+        "The check finished. No other Yaqeen merchant has submitted this reference."
     ),
 )
 
@@ -116,8 +116,7 @@ NETWORK_CHECK_SKIPPED = RiskSignal(
     code="NETWORK_CHECK_SKIPPED",
     severity=RiskSeverity.INFO,
     message=(
-        "Cross-merchant check was not run. The reference was missing, too short, "
-        "or the provider was unknown."
+        "This check did not run. The reference was missing, too short, or the provider was unknown."
     ),
 )
 
@@ -125,8 +124,7 @@ NETWORK_CHECK_UNAVAILABLE = RiskSignal(
     code="NETWORK_CHECK_UNAVAILABLE",
     severity=RiskSeverity.INFO,
     message=(
-        "Cross-merchant check did not finish. A missing warning does not mean "
-        "this reference is unique."
+        "This check did not finish. No warning here does not mean the reference is unique."
     ),
 )
 

@@ -34,6 +34,12 @@ def test_analyses_list_requires_auth() -> None:
     assert response.status_code == 401
 
 
+def test_analysis_select_names_owning_signal_fk() -> None:
+    from app.services.analyses import _SELECT
+
+    assert "risk_signals!risk_signals_analysis_id_fkey(*)" in _SELECT
+
+
 def test_orders_and_accounts_require_auth() -> None:
     assert client.get("/api/v1/orders").status_code == 401
     assert client.get("/api/v1/merchant-accounts").status_code == 401

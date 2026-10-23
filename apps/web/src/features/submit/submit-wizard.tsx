@@ -103,12 +103,12 @@ export function SubmitWizard({
           <p className="mt-1 break-all text-lg font-bold text-yaqeen-500">{reference}</p>
         </div>
         <InfoBanner className="mt-4 w-full text-left">
-          The merchant must still confirm receipt of funds.
+          {shopName} still has to confirm the money arrived.
         </InfoBanner>
         <a
           className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-yaqeen-600 py-3 text-sm font-semibold text-yaqeen-500"
           href={`https://wa.me/?text=${encodeURIComponent(
-            `Payment proof submitted to ${shopName}. Reference ${reference} for order ${lockedOrder}. Screening is not confirmation of funds.`,
+            `Payment proof submitted to ${shopName}. Reference ${reference} for order ${lockedOrder}. Screening is not confirmation that the money arrived.`,
           )}`}
           target="_blank"
           rel="noreferrer"
@@ -142,7 +142,7 @@ export function SubmitWizard({
             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-lift text-yaqeen-500">
               <IconLock className="h-4 w-4" />
             </span>
-            Your proof will be sent securely to {shopName} for review.
+            {shopName} will review this proof.
           </p>
           <div className="mt-5">
             <TextField

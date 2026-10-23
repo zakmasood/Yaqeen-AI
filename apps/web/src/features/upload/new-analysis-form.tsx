@@ -66,12 +66,14 @@ export function NewAnalysisForm() {
       ) : null}
 
       <div className="grid gap-5 lg:grid-cols-2">
-        <section className="rounded-xl border border-line bg-surface p-5 shadow-card">
+        <section className="rounded-2xl border border-line bg-surface p-6">
           <FileDropzone variant="merchant" onFileSelected={setFile} />
         </section>
 
-        <section className="rounded-xl border border-line bg-surface p-5 shadow-card">
-          <h2 className="mb-4 text-base font-semibold text-ink">Expected payment</h2>
+        <section className="rounded-2xl border border-line bg-surface p-6">
+          <h2 className="mb-4 font-display text-xl font-semibold tracking-tight text-ink">
+            Expected payment
+          </h2>
           <div className="space-y-4">
             <TextField
               label="Expected amount (PKR)"

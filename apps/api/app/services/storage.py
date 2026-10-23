@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
 import re
+import time
 import uuid
 from io import BytesIO
+from pathlib import Path
 
 from fastapi import HTTPException, status
 from PIL import Image
@@ -17,6 +22,39 @@ MAX_IMAGE_PIXELS = 20_000_000
 ALLOWED_CONTENT_TYPES = frozenset({"image/png", "image/jpeg", "image/webp"})
 _UNSAFE_NAME = re.compile(r"[^A-Za-z0-9._-]+")
 _FORMAT_FOR_TYPE = {"image/png": "PNG", "image/jpeg": "JPEG", "image/webp": "WEBP"}
+
+
+def sign_media_token(object_path: str, ttl_seconds: int = 300) -> str:
+    settings = get_settings()
+    exp = int(time.time()) + ttl_seconds
+    body = f"{exp}.{object_path}"
+    sig = hmac.new(settings.local_auth_secret.encode(), body.encode(), hashlib.sha256).hexdigest()
+    raw = f"{exp}.{sig}.{object_path}".encode()
+    return base64.urlsafe_b64encode(raw).decode().rstrip("=")
+
+
+def open_media_token(token: str) -> Path:
+    settings = get_settings()
+    padded = token + "=" * (-len(token) % 4)
+    try:
+        raw = base64.urlsafe_b64decode(padded).decode()
+        exp_text, sig, object_path = raw.split(".", 2)
+        exp = int(exp_text)
+    except (ValueError, UnicodeDecodeError) as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found") from exc
+    body = f"{exp}.{object_path}"
+    expected = hmac.new(
+        settings.local_auth_secret.encode(), body.encode(), hashlib.sha256
+    ).hexdigest()
+    if exp < int(time.time()) or not hmac.compare_digest(expected, sig):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+    root = Path(settings.local_storage_dir).resolve()
+    dest = (root / object_path).resolve()
+    if root not in dest.parents:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+    if not dest.is_file():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+    return dest
 
 
 def normalize_content_type(content_type: str | None) -> str:
@@ -120,6 +158,12 @@ class StorageService:
         content_type = validate_image_upload(data)
         safe_name = _UNSAFE_NAME.sub("_", filename or "proof")[:80] or "proof"
         object_path = f"{merchant_id}/{uuid.uuid4().hex}_{safe_name}"
+        settings = get_settings()
+        if settings.local_storage_dir:
+            dest = Path(settings.local_storage_dir) / object_path
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_bytes(data)
+            return object_path
         client = require_supabase()
         client.storage.from_(self.bucket).upload(
             object_path,
@@ -131,6 +175,10 @@ class StorageService:
     def create_signed_url(self, object_path: str, expires_in: int = 300) -> str | None:
         if not object_path:
             return None
+        settings = get_settings()
+        if settings.local_storage_dir:
+            token = sign_media_token(object_path)
+            return f"{settings.public_api_url.rstrip('/')}/api/v1/media/{token}"
         client = require_supabase()
         response = client.storage.from_(self.bucket).create_signed_url(object_path, expires_in)
         if not isinstance(response, dict):

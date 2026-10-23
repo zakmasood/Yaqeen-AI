@@ -13,7 +13,7 @@ export function TextField({ label, id, className, ...props }: InputProps) {
       <input
         id={fieldId}
         className={clsx(
-          "w-full rounded-lg border border-line bg-lift px-3 py-2.5 text-sm text-ink outline-none transition placeholder:text-muted focus:border-yaqeen-600 focus:ring-2 focus:ring-yaqeen-700/30",
+          "w-full rounded-xl border border-line bg-lift px-3 py-2.5 text-sm text-ink outline-none transition placeholder:text-muted focus:border-accent focus:ring-2 focus:ring-accent/30",
           className,
         )}
         {...props}
@@ -35,7 +35,7 @@ export function SelectField({ label, id, options, className, ...props }: SelectP
       <select
         id={fieldId}
         className={clsx(
-          "w-full rounded-lg border border-line bg-lift px-3 py-2.5 text-sm text-ink outline-none transition focus:border-yaqeen-600 focus:ring-2 focus:ring-yaqeen-700/30",
+          "w-full rounded-xl border border-line bg-lift px-3 py-2.5 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30",
           className,
         )}
         {...props}

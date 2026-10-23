@@ -1,9 +1,14 @@
 import { NewAnalysisForm } from "@/features/upload/new-analysis-form";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default function NewAnalysisPage() {
   return (
-    <div className="mx-auto max-w-5xl px-6 py-8 lg:px-10">
-      <h1 className="mb-6 text-3xl font-bold tracking-tight text-ink">Upload</h1>
+    <div className="mx-auto max-w-6xl px-5 py-14">
+      <PageHeader
+        kicker="New proof"
+        title="Upload"
+        lede="Upload a screenshot yourself, or send the customer a WhatsApp link for this order."
+      />
       <NewAnalysisForm />
     </div>
   );

@@ -141,10 +141,13 @@ def assemble_analysis(row: dict, *, signed_url: str | None = None) -> AnalysisRe
     )
 
 
+# related_analysis_id is a second FK to analyses. PostgREST needs the constraint
+# name or the embed is ambiguous (PGRST201) and every read returns 500.
 _SELECT = (
     "*, orders(order_reference, expected_amount, currency, expected_provider, "
     "expected_account_id), "
-    "extracted_transactions(*), risk_signals(*), screenshots(*)"
+    "extracted_transactions(*), "
+    "risk_signals!risk_signals_analysis_id_fkey(*), screenshots(*)"
 )
 
 
@@ -293,8 +296,7 @@ def record_attestation(
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail=(
-                    "Merchant confirmation is unavailable until the latest "
-                    "database migration is applied"
+                    "A confirmation can't be saved until the latest database update is applied"
                 ),
             ) from exc
         raise

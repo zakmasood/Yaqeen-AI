@@ -36,6 +36,12 @@ class Settings(BaseSettings):
     # HMAC key for cross-merchant reference fingerprints. Never send this to the browser.
     network_claim_key: str = ""
 
+    # Local demo stack (docker compose). When set, the API uses Postgres instead of Supabase.
+    database_url: str = ""
+    local_auth_secret: str = ""
+    local_storage_dir: str = ""
+    public_api_url: str = "http://localhost:8000"
+
     @property
     def cors_origin_list(self) -> list[str]:
         # localhost and 127.0.0.1 are different browser origins; allow both.

@@ -1,15 +1,16 @@
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/ui/page-header";
 import { QueryMessage } from "@/components/ui/query-message";
 import { AnalysisTable } from "@/components/analyses/analysis-table";
-import { IconAlert, IconCheck, IconChevronRight, IconClock } from "@/components/icons";
+import { IconChevronRight } from "@/components/icons";
 import { loadAnalyses } from "@/lib/api-server";
 import { ApiError } from "@/lib/api";
 import { statusNote } from "@/lib/analysis-map";
 import { formatAgo, formatPkr } from "@/lib/format";
 import { AnalysisStatus } from "@yaqeen/shared";
 import type { AnalysisResult } from "@yaqeen/shared";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -43,40 +44,38 @@ export default async function OverviewPage() {
     {
       label: "Ready",
       value: stats.ready,
-      hint: "Ready for confirmation",
-      icon: IconCheck,
-      iconWrap: "bg-ready-bg text-ready",
+      hint: "Passed screening. You still confirm the transfer.",
       valueClass: "text-ready",
     },
     {
       label: "Needs review",
       value: stats.review,
-      hint: "Awaiting review",
-      icon: IconClock,
-      iconWrap: "bg-review-bg text-review",
+      hint: "Something is missing or unclear. Look before you decide.",
       valueClass: "text-review",
     },
     {
       label: "Suspicious",
       value: stats.suspicious,
-      hint: "Potential risk detected",
-      icon: IconAlert,
-      iconWrap: "bg-danger-bg text-danger",
+      hint: "A repeated reference or a proof that does not line up.",
       valueClass: "text-danger",
     },
   ];
 
   return (
-    <div className="px-6 py-8 lg:px-10">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-3xl font-bold tracking-tight text-ink">Overview</h1>
-        <div className="flex flex-wrap gap-2">
-          <Button href="/settings">Ask for a screenshot</Button>
-          <Button href="/upload" variant="outline">
-            Upload myself
-          </Button>
-        </div>
-      </div>
+    <div className="mx-auto max-w-6xl px-5 py-14">
+      <PageHeader
+        kicker="Desk"
+        title="Overview"
+        lede="Proofs waiting on you. Ready still means you confirm the money arrived."
+        actions={
+          <>
+            <Button href="/settings">Ask for a screenshot</Button>
+            <Button href="/upload" variant="outline">
+              Upload myself
+            </Button>
+          </>
+        }
+      />
 
       {error ? (
         <QueryMessage title="Analyses unavailable">{error}</QueryMessage>
@@ -84,22 +83,13 @@ export default async function OverviewPage() {
         <>
           <section className="grid gap-4 sm:grid-cols-3">
             {statCards.map((card) => {
-              const Icon = card.icon;
               return (
-                <div
-                  key={card.label}
-                  className="rounded-xl border border-line bg-surface p-5 shadow-card"
-                >
-                  <div className="flex items-center gap-2 text-sm font-medium text-muted">
-                    <span
-                      className={`flex h-7 w-7 items-center justify-center rounded-full ${card.iconWrap}`}
-                    >
-                      <Icon className="h-4 w-4" />
-                    </span>
-                    {card.label}
-                  </div>
-                  <p className={`mt-3 text-4xl font-bold ${card.valueClass}`}>{card.value}</p>
-                  <p className="mt-1 text-sm text-muted">{card.hint}</p>
+                <div key={card.label} className="rounded-2xl border border-line bg-surface p-6">
+                  <p className={`font-display text-2xl font-semibold ${card.valueClass}`}>{card.label}</p>
+                  <p className="mt-4 font-display text-5xl font-semibold tracking-tight text-ink">
+                    {card.value}
+                  </p>
+                  <p className="mt-3 text-sm leading-relaxed text-muted">{card.hint}</p>
                 </div>
               );
             })}
@@ -107,8 +97,8 @@ export default async function OverviewPage() {
 
           {attention.length > 0 ? (
             <section className="mt-8">
-              <h2 className="mb-3 text-lg font-semibold text-ink">Needs attention</h2>
-              <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
+              <h2 className="mb-3 font-display text-2xl font-semibold tracking-tight text-ink">Needs attention</h2>
+              <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
                 {attention.map((row) => (
                   <li key={row.id}>
                     <Link
@@ -141,7 +131,7 @@ export default async function OverviewPage() {
           ) : null}
 
           <section className="mt-8">
-            <h2 className="mb-3 text-lg font-semibold text-ink">Recent analyses</h2>
+            <h2 className="mb-3 font-display text-2xl font-semibold tracking-tight text-ink">Recent analyses</h2>
             {recent.length === 0 ? (
               <QueryMessage title="No analyses yet">
                 Upload a payment proof or share the customer submit link.
@@ -152,7 +142,7 @@ export default async function OverviewPage() {
                 <div className="mt-3 text-center">
                   <Link
                     href="/analyses"
-                    className="inline-flex items-center gap-1 text-sm font-semibold text-yaqeen-500 hover:underline"
+                    className="inline-flex items-center gap-1 text-sm font-semibold text-accent hover:underline"
                   >
                     View inbox
                     <IconChevronRight className="h-4 w-4" />

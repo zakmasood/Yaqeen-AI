@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import { themeBootScript } from "@/lib/theme";
 
@@ -9,10 +9,15 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
+const outfit = Outfit({
+  subsets: ["latin"],
+  variable: "--font-display",
+});
+
 export const metadata: Metadata = {
   title: "Yaqeen AI",
   description:
-    "WhatsApp-first payment-proof risk assessment for Pakistani merchants. Screening only — not fund confirmation.",
+    "WhatsApp-first payment-proof screening for Pakistani merchants. Screening only. Not confirmation that funds arrived.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -21,7 +26,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
       </head>
-      <body className={`${inter.variable} font-sans`}>{children}</body>
+      <body className={`${inter.variable} ${outfit.variable} font-sans`}>{children}</body>
     </html>
   );
 }

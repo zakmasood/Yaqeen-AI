@@ -169,7 +169,7 @@ export function CustomerInviteCard({
       ) : (
         <p className="mt-4 text-sm text-muted">
           {canMint
-            ? "Copy the link or open WhatsApp to mint this invite."
+            ? "Copy the link or open WhatsApp. That creates the invite."
             : "Add an order reference and amount first."}
         </p>
       )}
@@ -185,7 +185,7 @@ export function CustomerInviteCard({
         </Button>
         <button
           type="button"
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-yaqeen-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-yaqeen-800 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-accent px-4 py-2.5 text-sm font-semibold text-accent-ink hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           onClick={openWhatsApp}
           disabled={!canMint || pending}
         >
@@ -193,7 +193,7 @@ export function CustomerInviteCard({
           Open WhatsApp
         </button>
         {submitPath ? (
-          <a href={submitPath} className="self-center text-sm font-semibold text-yaqeen-500">
+          <a href={submitPath} className="self-center text-sm font-semibold text-accent">
             Open submit flow →
           </a>
         ) : null}

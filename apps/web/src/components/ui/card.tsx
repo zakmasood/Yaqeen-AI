@@ -8,8 +8,10 @@ type CardProps = {
 
 export function Card({ title, children, className }: CardProps) {
   return (
-    <div className={clsx("rounded-xl border border-line bg-surface p-5 shadow-card", className)}>
-      {title ? <h2 className="mb-4 text-base font-semibold text-ink">{title}</h2> : null}
+    <div className={clsx("rounded-2xl border border-line bg-surface p-6", className)}>
+      {title ? (
+        <h2 className="mb-4 font-display text-xl font-semibold tracking-tight text-ink">{title}</h2>
+      ) : null}
       {children}
     </div>
   );

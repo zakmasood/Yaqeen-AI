@@ -32,7 +32,7 @@ def create_app() -> FastAPI:
         title="Yaqeen AI API",
         description=(
             "Payment-proof screening for Pakistani merchants. "
-            "Operational statuses only — never claims funds were received."
+            "Operational statuses only. Never claims funds were received."
         ),
         version="0.1.0",
         lifespan=lifespan,
@@ -47,7 +47,7 @@ def create_app() -> FastAPI:
             logger.error("Request failed (%s)", type(exc).__name__)
             return JSONResponse(
                 status_code=500,
-                content={"detail": "Yaqeen could not complete that request."},
+                content={"detail": "That didn't work. Try again."},
             )
 
     @application.middleware("http")

@@ -30,21 +30,21 @@ export function FileDropzone({ variant = "merchant", onFileSelected }: FileDropz
         type="button"
         onClick={() => inputRef.current?.click()}
         className={clsx(
-          "flex w-full flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-10 text-center",
-          "border-yaqeen-700/40 bg-lift hover:bg-surface",
+          "flex w-full flex-col items-center justify-center rounded-2xl border border-dashed px-4 py-12 text-center",
+          "border-line bg-lift hover:border-accent",
         )}
       >
-        <IconImage className="h-10 w-10 text-yaqeen-500" />
+        <IconImage className="h-10 w-10 text-accent" />
         {variant === "customer" ? (
           <>
-            <p className="mt-3 text-sm font-semibold text-yaqeen-500">Choose screenshot</p>
+            <p className="mt-3 text-sm font-semibold text-ink">Choose screenshot</p>
             <p className="mt-1 text-xs text-muted">PNG, JPG or WEBP · Max 10 MB</p>
           </>
         ) : (
           <>
-            <p className="mt-3 text-sm font-semibold text-ink">Upload payment proof</p>
+            <p className="mt-3 font-display text-lg font-semibold text-ink">Upload payment proof</p>
             <p className="mt-1 text-xs text-muted">PNG, JPG or WEBP · Max 10 MB</p>
-            <span className="mt-4 inline-flex rounded-lg border border-yaqeen-600 px-3 py-1.5 text-sm font-semibold text-yaqeen-500">
+            <span className="mt-4 inline-flex rounded-full px-3 py-1.5 text-sm font-semibold text-ink ring-1 ring-inset ring-line">
               Choose file
             </span>
           </>
@@ -60,7 +60,7 @@ export function FileDropzone({ variant = "merchant", onFileSelected }: FileDropz
 
       {file && variant === "customer" ? (
         <div className="flex items-center gap-3 rounded-xl border border-line bg-surface px-3 py-2.5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-lift text-yaqeen-500">
+          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-lift text-accent">
             <IconImage className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1 text-left">
@@ -83,7 +83,7 @@ export function FileDropzone({ variant = "merchant", onFileSelected }: FileDropz
           <p className="mb-2 text-sm font-medium text-ink">Attached file</p>
           <div className="flex items-center gap-3 rounded-xl border border-line bg-surface px-3 py-2.5">
             <div className="h-12 w-10 overflow-hidden rounded bg-lift">
-              <div className="flex h-full items-center justify-center text-yaqeen-500">
+              <div className="flex h-full items-center justify-center text-accent">
                 <IconImage className="h-5 w-5" />
               </div>
             </div>

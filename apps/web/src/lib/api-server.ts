@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { ApiError, fetchAnalyses, fetchAnalysis, fetchMe, fetchMerchantAccounts } from "@/lib/api";
 import type { AnalysisResult } from "@yaqeen/shared";
@@ -5,7 +6,10 @@ import type { MerchantAccount, MerchantMe } from "@/lib/api";
 
 export async function getServerAccessToken(): Promise<string | null> {
   const supabase = await createServerSupabaseClient();
-  if (!supabase) return null;
+  if (!supabase) {
+    const jar = await cookies();
+    return jar.get("yaqeen-session")?.value ?? null;
+  }
   const { data } = await supabase.auth.getSession();
   return data.session?.access_token ?? null;
 }

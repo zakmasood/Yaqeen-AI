@@ -95,10 +95,10 @@ function mapSignals(rows: ApiSignal[] | undefined): RiskSignal[] {
 }
 
 export const ATTESTATION_OPTIONS = [
-  { value: "PENDING_CONFIRMATION", label: "Pending independent confirmation" },
-  { value: "OBSERVED_IN_RECORDS", label: "Payment observed in wallet or bank records" },
+  { value: "PENDING_CONFIRMATION", label: "Not confirmed yet" },
+  { value: "OBSERVED_IN_RECORDS", label: "Seen in my records" },
   { value: "NOT_FOUND", label: "Payment not found" },
-  { value: "HELD", label: "Held for further investigation" },
+  { value: "HELD", label: "On hold" },
 ] as const;
 
 export function attestationLabel(decision: string): string {
@@ -107,11 +107,13 @@ export function attestationLabel(decision: string): string {
 
 export function evidenceKindLabel(code: string): string {
   if (code === "NETWORK_REFERENCE_REUSED") return "Seen at another merchant";
-  if (code.startsWith("NETWORK_CHECK_")) return "Check availability";
-  if (code.endsWith("_UNAVAILABLE") || code === "SCREENING_UNAVAILABLE") return "Missing evidence";
-  if (code.endsWith("_MISMATCH")) return "Contradictory evidence";
+  if (code === "NETWORK_CHECK_CLEAR") return "No other merchant";
+  if (code === "NETWORK_CHECK_SKIPPED") return "Check not run";
+  if (code.startsWith("NETWORK_CHECK_")) return "Check didn't finish";
+  if (code.endsWith("_UNAVAILABLE") || code === "SCREENING_UNAVAILABLE") return "Not on the screenshot";
+  if (code.endsWith("_MISMATCH")) return "Doesn't match";
   if (code === "TXN_REUSED" || code === "EXACT_IMAGE_REUSED" || code === "NEAR_DUPLICATE_IMAGE") {
-    return "Duplicate match";
+    return "Used before";
   }
   return "Needs review";
 }
@@ -153,10 +155,10 @@ export function mapAnalysis(row: ApiAnalysis): AnalysisResult {
 
 export function statusNote(status: AnalysisStatus): string {
   if (status === AnalysisStatus.READY_FOR_CONFIRMATION) {
-    return "Screening found no blocking signals. Merchant still confirms funds.";
+    return "No blocking signals. You still confirm the money.";
   }
   if (status === AnalysisStatus.SUSPICIOUS) {
-    return "Hold fulfilment and review this proof.";
+    return "Don't fulfil this order until you have looked at the proof.";
   }
-  return "Human review required.";
+  return "Look at this before you decide.";
 }

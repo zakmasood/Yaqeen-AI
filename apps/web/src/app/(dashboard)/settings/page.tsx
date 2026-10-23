@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { SelectField, TextField } from "@/components/ui/field";
 import { CustomerInviteCard } from "@/components/customer-invite";
@@ -51,11 +52,12 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-8 lg:px-10">
-      <h1 className="text-3xl font-bold tracking-tight text-ink">Settings</h1>
-      <p className="mt-1 text-sm text-muted">
-        {me ? me.name : error ? "Merchant configuration" : "Loading settings…"}
-      </p>
+    <div className="mx-auto max-w-6xl px-5 py-14">
+      <PageHeader
+        kicker="Shop"
+        title="Settings"
+        lede={me ? me.name : error ? "Merchant configuration" : "Loading settings…"}
+      />
 
       {error ? <p className="mt-4 text-sm text-danger">{error}</p> : null}
 

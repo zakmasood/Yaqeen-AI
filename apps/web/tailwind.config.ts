@@ -28,9 +28,12 @@ const config: Config = {
         "review-bg": "var(--review-bg)",
         danger: "var(--danger)",
         "danger-bg": "var(--danger-bg)",
+        accent: "var(--accent)",
+        "accent-ink": "var(--accent-ink)",
       },
       fontFamily: {
         sans: ["var(--font-inter)", "ui-sans-serif", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "var(--font-inter)", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       boxShadow: {
         card: "0 1px 2px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.08)",

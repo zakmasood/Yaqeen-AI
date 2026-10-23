@@ -5,12 +5,14 @@
 :root,
 .dark {
   color-scheme: dark;
-  --canvas: #101614;
-  --surface: #171e1b;
-  --lift: #1e2622;
-  --ink: #eef3f0;
-  --muted: #8b9891;
-  --line: #2a332e;
+  --canvas: #070908;
+  --surface: #101412;
+  --lift: #171c19;
+  --ink: #f3f7f4;
+  --muted: #9aa59e;
+  --line: #262e29;
+  --accent: #3ecf8e;
+  --accent-ink: #062117;
   --ready: #6ee7b7;
   --ready-bg: #073322;
   --review: #fbbf24;
@@ -21,12 +23,14 @@
 
 .light {
   color-scheme: light;
-  --canvas: #f5f7f6;
+  --canvas: #f4f7f5;
   --surface: #ffffff;
   --lift: #eef3f0;
   --ink: #0f172a;
-  --muted: #64748b;
-  --line: #e2e8f0;
+  --muted: #5c6b64;
+  --line: #e2e8e4;
+  --accent: #04724a;
+  --accent-ink: #ffffff;
   --ready: #04724a;
   --ready-bg: #ecf8f2;
   --review: #b45309;
@@ -39,4 +43,56 @@ body {
   @apply font-sans antialiased;
   background-color: var(--canvas);
   color: var(--ink);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.site-glow {
+  background-image:
+    radial-gradient(900px 420px at 78% -8%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 62%),
+    radial-gradient(640px 320px at -8% 12%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 58%);
+}
+
+.desk-glow {
+  background-image: radial-gradient(
+    720px 220px at 100% -40px,
+    color-mix(in srgb, var(--accent) 10%, transparent),
+    transparent 55%
+  );
+}
+
+@keyframes site-marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.site-marquee {
+  animation: site-marquee 120s linear infinite;
+}
+
+@keyframes site-rise {
+  from {
+    transform: translateY(8px);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .motion-in {
+    animation: site-rise 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-marquee {
+    animation: none;
+  }
 }

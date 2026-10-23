@@ -18,7 +18,12 @@ def get_supabase_client() -> Client | None:
     return create_client(settings.supabase_url, settings.supabase_service_role_key)
 
 
-def require_supabase() -> Client:
+def require_supabase():
+    settings = get_settings()
+    if settings.database_url:
+        from app.core.local_db import LocalClient
+
+        return LocalClient(settings.database_url)
     client = get_supabase_client()
     if client is None:
         raise HTTPException(

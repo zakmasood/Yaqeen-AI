@@ -1,33 +1,57 @@
-# Minimal local stack for the API (and optional web).
-# For Supabase locally, use the Supabase CLI (`supabase start`) — not bundled here.
+# Local demo. No Supabase and no outbound calls once the images are built.
+#   docker compose up --build
+# Desk: http://localhost:3008/login
+# ManoVersa  demo@manoversa.com / demo-demo
+# North Shop demo2@northshop.com / demo-demo
 
 services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: yaqeen
+      POSTGRES_PASSWORD: yaqeen
+      POSTGRES_DB: yaqeen
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./deploy/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U yaqeen -d yaqeen"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
   api:
-    build:
-      context: ./apps/api
-      dockerfile: Dockerfile
+    build: ./apps/api
     ports:
       - "8000:8000"
-    env_file:
-      - .env
     environment:
-      APP_ENV: development
-      CORS_ORIGINS: http://localhost:3000
+      DATABASE_URL: postgresql://yaqeen:yaqeen@db:5432/yaqeen
+      LOCAL_AUTH_SECRET: yaqeen-local-demo
+      LOCAL_STORAGE_DIR: /data/screenshots
+      PUBLIC_API_URL: http://localhost:8000
+      NETWORK_CLAIM_KEY: yaqeen-local-network-key
+      CORS_ORIGINS: http://localhost:3008
+      AI_VISION_API_KEY: ""
     volumes:
-      - ./apps/api:/app
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      - screenshots:/data/screenshots
+    depends_on:
+      db:
+        condition: service_healthy
 
   web:
-    image: node:22-alpine
-    working_dir: /workspace
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
     ports:
-      - "3000:3000"
-    env_file:
-      - .env
+      - "3008:3008"
     environment:
+      API_URL_INTERNAL: http://api:8000
       NEXT_PUBLIC_API_URL: http://localhost:8000
-    volumes:
-      - .:/workspace
-    command: sh -c "corepack enable && pnpm install && pnpm --filter @yaqeen/web dev"
     depends_on:
       - api
+
+volumes:
+  pgdata:
+  screenshots:

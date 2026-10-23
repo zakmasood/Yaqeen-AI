@@ -4,10 +4,10 @@ import clsx from "clsx";
 type Variant = "primary" | "secondary" | "outline" | "ghost" | "danger" | "dangerOutline";
 
 const variants: Record<Variant, string> = {
-  primary: "bg-yaqeen-700 text-white hover:bg-yaqeen-800",
+  primary: "bg-accent text-accent-ink hover:opacity-90",
   secondary: "bg-lift text-ink hover:bg-line",
-  outline: "bg-transparent text-yaqeen-500 ring-1 ring-inset ring-yaqeen-600 hover:bg-lift",
-  ghost: "bg-transparent text-yaqeen-500 hover:underline",
+  outline: "bg-transparent text-ink ring-1 ring-inset ring-line hover:bg-lift",
+  ghost: "bg-transparent text-accent hover:underline",
   danger: "bg-red-700 text-white hover:bg-red-800",
   dangerOutline: "bg-transparent text-danger ring-1 ring-inset ring-danger/40 hover:bg-danger-bg",
 };
@@ -32,7 +32,7 @@ export function Button({
   disabled,
 }: ButtonProps) {
   const classes = clsx(
-    "inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50",
+    "inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold tracking-tight transition disabled:cursor-not-allowed disabled:opacity-50",
     variants[variant],
     className,
   );

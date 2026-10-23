@@ -4,7 +4,10 @@ import { supabasePublicEnv } from "./env";
 
 function isPublicPath(pathname: string): boolean {
   return (
-    pathname.startsWith("/login") || pathname.startsWith("/submit") || pathname.startsWith("/s/")
+    pathname === "/" ||
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/submit") ||
+    pathname.startsWith("/s/")
   );
 }
 
@@ -14,6 +17,24 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   const pathname = request.nextUrl.pathname;
 
   if (!env) {
+    const localSession = request.cookies.get("yaqeen-session")?.value;
+    if (!localSession && !isPublicPath(pathname)) {
+      const redirect = request.nextUrl.clone();
+      redirect.pathname = "/login";
+      return NextResponse.redirect(redirect);
+    }
+    if (localSession && pathname.startsWith("/login")) {
+      const redirect = request.nextUrl.clone();
+      redirect.pathname = "/overview";
+      return NextResponse.redirect(redirect);
+    }
+    return supabaseResponse;
+  }
+
+  const hasAuthCookie = request.cookies
+    .getAll()
+    .some((cookie) => cookie.name.startsWith("sb-") && cookie.name.includes("auth-token"));
+  if (!hasAuthCookie) {
     if (!isPublicPath(pathname)) {
       const redirect = request.nextUrl.clone();
       redirect.pathname = "/login";
@@ -51,7 +72,7 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
 
   if (user && pathname.startsWith("/login")) {
     const redirect = request.nextUrl.clone();
-    redirect.pathname = "/";
+    redirect.pathname = "/overview";
     return NextResponse.redirect(redirect);
   }
 

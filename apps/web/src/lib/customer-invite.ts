@@ -21,9 +21,9 @@ export function customerProofMessage(opts: {
   if (order) extras.push(`Order ${order}`);
   if (amount) extras.push(`PKR ${amount}`);
   if (extras.length) lines.push(extras.join(" · "));
-  lines.push("We'll screen it — this is not confirmation of funds.");
+  lines.push("We'll screen it. This is not confirmation that the money arrived.");
   const name = opts.merchantName.trim();
-  if (name) lines.push(`— ${name}`);
+  if (name) lines.push(name);
   return lines.join("\n");
 }
 

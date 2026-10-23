@@ -27,7 +27,7 @@ describe("customerProofMessage", () => {
     expect(text).toContain("http://localhost:3008/s/abc_12");
     expect(text).toContain("Order MV-1048");
     expect(text).toContain("PKR 5000");
-    expect(text).toContain("not confirmation of funds");
+    expect(text).toContain("not confirmation that the money arrived");
     expect(text).toContain("ManoVersa");
   });
 });
